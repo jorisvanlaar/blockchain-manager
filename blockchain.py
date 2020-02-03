@@ -1,5 +1,10 @@
 # Initializing global variables
-blockchain = []
+genesis_block = {
+        'previous_hash': '',
+        'index': 0,
+        'transactions': []
+    }
+blockchain = [genesis_block]
 open_transactions = []
 owner = 'Joris'
 
@@ -28,8 +33,22 @@ def add_transaction(recipient, sender=owner, amount=1.0):
 
 
 def mine_block():
-    """ Add a new block to the blockchain, containing the open transactions """
-    pass
+    """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
+    last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So we need a genesis block (see line 2).
+    hashed_block = ''           # Variabele die een string zal bevatten waarin alle values van de last_block zijn samengevoegd
+
+    for key in last_block:                          # Door de last_block dictionary loopen
+        value = last_block[key]                     # En elke loop de value die bij de key hoort opvragen (vb. last_block[previous_hash] geeft XYZ terug
+        hashed_block = hashed_block + str(value)    # Elke opgevraagde value toevoegen aan 1 lange string variabele 'hashed_block'
+    
+    print(hashed_block)
+
+    block = {
+        'previous_hash': 'XYZ',
+        'index': len(blockchain),
+        'transactions': open_transactions
+    }
+    blockchain.append(block)
 
 
 def get_transaction_values():
@@ -70,8 +89,9 @@ menu = True
 
 while menu:
     print('Please choose:')
-    print('1: Add a new transaction value')
-    print('2: Output the blockchain blocks')
+    print('1: Add a new transaction')
+    print('2: Mine a new block')
+    print('3: Output the blockchain blocks')
     print('h: Manipulate the chain')
     print('q: Quit')
 
@@ -83,6 +103,8 @@ while menu:
         add_transaction(recipient, amount=amount) # kwarg zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
         print(open_transactions)
     elif user_choice == '2':
+        mine_block()
+    elif user_choice == '3':
         print_blockchain_elements()
     elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain into a value of 2
         if len(blockchain) >= 1:
@@ -92,10 +114,10 @@ while menu:
         menu = False
     else:
         print('Input was invalid, please pick a value from the list!')
-    if not verify_chain():              # if verify_chain() returns False -> print a message
-        print_blockchain_elements()
-        print('Invalid blockchain!')
-        break
+    # if not verify_chain():              # if verify_chain() returns False -> print a message
+    #     print_blockchain_elements()
+    #     print('Invalid blockchain!')
+    #     break
 # gets executed when the loop is done (doesn't work when you break out of the loop)
 else:
     print('User left')
