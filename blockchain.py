@@ -1,5 +1,7 @@
-# Initializing the blockchain list
+# Initializing global variables
 blockchain = []
+open_transactions = []
+owner = 'Joris'
 
 
 def get_last_blockchain_value():
@@ -9,22 +11,32 @@ def get_last_blockchain_value():
     return blockchain[-1]
 
 
-def add_transaction(transaction_amount, last_transaction):
-    """ Append a new value and the last blockchain value, to the blockchain. 
-
+def add_transaction(recipient, sender=owner, amount=1.0):
+    """ Store a new transaction in the open transactions 
+    
     Arguments:
-        :transaction_amount: The amount that should be added.
-        :last_transaction: The last blockchain transaction (default [1]).
+        :sender: The sender of the coins.
+        :recipient: The recipient of the coins.
+        :amount: The amount of coins sent with the transaction (default = 1.0)
     """
-    if last_transaction == None:
-        last_transaction = [1]
-    blockchain.append([last_transaction, transaction_amount])
+    transaction = {
+        'sender': sender, 
+        'recipient': recipient, 
+        'amount': amount
+    }
+    open_transactions.append(transaction)
 
 
-def get_transaction_value():
+def mine_block():
+    """ Add a new block to the blockchain, containing the open transactions """
+    pass
+
+
+def get_transaction_values():
     """ Returns the input of the user (a new transaction amount) as a float. """
-    user_input = float(input('Your transaction amount: '))
-    return user_input
+    tx_recipient = input('Enter the recipient of the transaction: ')
+    tx_amount = float(input('Your transaction amount: '))
+    return tx_recipient, tx_amount
 
 
 def get_user_choice():
@@ -39,9 +51,8 @@ def print_blockchain_elements():
         print('-' * 20)
 
 
-# Verify whether the first element of the current block is equal to the complete previous block
 def verify_chain():
-    # block_index = 0   # not necessary when using range() to utilize an index in your for-loop
+    """ Verifies whether the first element of the current block is equal to the complete previous block. """
     is_valid = True
 
     for block_index in range(len(blockchain)):
@@ -53,21 +64,6 @@ def verify_chain():
             is_valid = False
             break
     return is_valid
-
-    # Instead of using a custom index variable, you can use range as seen above
-    # Either way is fine
-    
-    # for block in blockchain:
-    #     if block_index == 0:
-    #         block_index += 1
-    #         continue
-    #     elif block[0] == blockchain[block_index - 1]:
-    #         is_valid = True
-    #     else:
-    #         is_valid = False
-    #         break
-    #     block_index += 1
-    # return is_valid
 
 
 menu = True
@@ -81,8 +77,11 @@ while menu:
 
     user_choice = get_user_choice()
     if user_choice == '1':
-        tx_amount = get_transaction_value()
-        add_transaction(tx_amount, get_last_blockchain_value())
+        tx_data = get_transaction_values()  
+        recipient, amount = tx_data         # unpacken van de tuple 'tx_data' en diens values in de variabelen 'recipient' en 'amount' stoppen
+        # Add the transaction to the open_transactions list
+        add_transaction(recipient, amount=amount) # kwarg zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
+        print(open_transactions)
     elif user_choice == '2':
         print_blockchain_elements()
     elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain into a value of 2
