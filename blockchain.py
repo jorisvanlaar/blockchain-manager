@@ -9,6 +9,12 @@ open_transactions = []
 owner = 'Joris'
 
 
+def hash_block(block):
+    """ Returns a hash in the form of a string (thats separated by -'s using list comprehension) """
+    return '-'.join([str(block[key]) for key in block]) 
+
+
+
 def get_last_blockchain_value():
     """ Returns the last value of the current blockchain. """
     if len(blockchain) < 1:
@@ -35,13 +41,10 @@ def add_transaction(recipient, sender=owner, amount=1.0):
 def mine_block():
     """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
     last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So we need a genesis block (see line 2).
-    hashed_block = str([last_block[key] for key in last_block])     # List comprehension, waarbij de variabele 'hashed_block' 
-                                                                    # een string zal bevatten waarin alle values van de last_block zijn samengevoegd
-    # hashed_block = '-'.join([str(last_block[key]) for key in last_block])   # alternatief waarbij je de hash van de previous block wilt formatten met een - steeds ertussen     
-    print(hashed_block)
-
+    hashed_block = hash_block(last_block) 
+    
     block = {
-        'previous_hash': 'XYZ',
+        'previous_hash': hashed_block,
         'index': len(blockchain),
         'transactions': open_transactions
     }
@@ -68,18 +71,14 @@ def print_blockchain_elements():
 
 
 def verify_chain():
-    """ Verifies whether the first element of the current block is equal to the complete previous block. """
-    is_valid = True
-
-    for block_index in range(len(blockchain)):
-        if block_index == 0:
+    """ Compares the stored 'previous_hash' in a block with a recalculated hash """
+    for (index, block) in enumerate(blockchain): # if you wrap a list with the helper function 'enumerate', it will give you back a tuple consisting of the index & value of an element
+                                                 # In this case we immediately unpack the tuple values to the variables 'index' and 'block'
+        if index == 0:
             continue
-        elif blockchain[block_index][0] == blockchain[block_index - 1]:
-            is_valid = True
-        else:
-            is_valid = False
-            break
-    return is_valid
+        if block['previous_hash'] != hash_block(blockchain[index - 1]):  # Je vergelijkt hier dus of de reeds opgeslagen hash van het voorgaande block (in 'previous_hash') overeenkomt met de hash die je nu nogmaals laat berekenen/returnen
+            return False
+    return True
 
 
 menu = True
@@ -105,16 +104,20 @@ while menu:
         print_blockchain_elements()
     elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain into a value of 2
         if len(blockchain) >= 1:
-            blockchain[0] = [2]
+            blockchain[0] = {
+                'previous_hash': '',
+                'index': 0,
+                'transactions': [{'sender': 'Bas', 'recipient': 'Joris', 'amount': 100.0}]
+            }
     elif user_choice.upper() == 'Q':
         # break
         menu = False
     else:
         print('Input was invalid, please pick a value from the list!')
-    # if not verify_chain():              # if verify_chain() returns False -> print a message
-    #     print_blockchain_elements()
-    #     print('Invalid blockchain!')
-    #     break
+    if not verify_chain():              # if verify_chain() returns False -> print a message
+        print_blockchain_elements()
+        print('Invalid blockchain!')
+        break
 # gets executed when the loop is done (doesn't work when you break out of the loop)
 else:
     print('User left')
