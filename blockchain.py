@@ -35,12 +35,9 @@ def add_transaction(recipient, sender=owner, amount=1.0):
 def mine_block():
     """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
     last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So we need a genesis block (see line 2).
-    hashed_block = ''           # Variabele die een string zal bevatten waarin alle values van de last_block zijn samengevoegd
-
-    for key in last_block:                          # Door de last_block dictionary loopen
-        value = last_block[key]                     # En elke loop de value die bij de key hoort opvragen (vb. last_block[previous_hash] geeft XYZ terug
-        hashed_block = hashed_block + str(value)    # Elke opgevraagde value toevoegen aan 1 lange string variabele 'hashed_block'
-    
+    hashed_block = str([last_block[key] for key in last_block])     # List comprehension, waarbij de variabele 'hashed_block' 
+                                                                    # een string zal bevatten waarin alle values van de last_block zijn samengevoegd
+    # hashed_block = '-'.join([str(last_block[key]) for key in last_block])   # alternatief waarbij je de hash van de previous block wilt formatten met een - steeds ertussen     
     print(hashed_block)
 
     block = {
