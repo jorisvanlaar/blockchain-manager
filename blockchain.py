@@ -7,6 +7,8 @@ genesis_block = {
 blockchain = [genesis_block]
 open_transactions = []
 owner = 'Joris'
+participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values. 
+                            # Python begrijpt dat het geen dictionary is, want geen key-value pairs)
 
 
 def hash_block(block):
@@ -36,6 +38,8 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         'amount': amount
     }
     open_transactions.append(transaction)
+    participants.add(sender)
+    participants.add(recipient)
 
 
 def mine_block():
@@ -66,7 +70,7 @@ def get_user_choice():
 def print_blockchain_elements():
     for block in blockchain:
         print(block)
-    else:               # Get executed when the loop is done
+    else:               # Gets executed when the loop is done
         print('-' * 20)
 
 
@@ -88,20 +92,28 @@ while menu:
     print('1: Add a new transaction')
     print('2: Mine a new block')
     print('3: Output the blockchain blocks')
+    print('4: Output participants')
     print('h: Manipulate the chain')
     print('q: Quit')
 
     user_choice = get_user_choice()
+    
     if user_choice == '1':
         tx_data = get_transaction_values()  
         recipient, amount = tx_data         # unpacken van de tuple 'tx_data' en diens values in de variabelen 'recipient' en 'amount' stoppen
         # Add the transaction to the open_transactions list
         add_transaction(recipient, amount=amount) # kwarg zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
         print(open_transactions)
+    
     elif user_choice == '2':
         mine_block()
+    
     elif user_choice == '3':
         print_blockchain_elements()
+    
+    elif user_choice == '4':
+        print(participants)
+    
     elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain into a value of 2
         if len(blockchain) >= 1:
             blockchain[0] = {
@@ -112,8 +124,10 @@ while menu:
     elif user_choice.upper() == 'Q':
         # break
         menu = False
+    
     else:
         print('Input was invalid, please pick a value from the list!')
+    
     if not verify_chain():              # if verify_chain() returns False -> print a message
         print_blockchain_elements()
         print('Invalid blockchain!')
