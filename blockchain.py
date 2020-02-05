@@ -1,4 +1,6 @@
 # Initializing global variables
+MINING_REWARD = 10  # global constant variable
+
 genesis_block = {
         'previous_hash': '',
         'index': 0,
@@ -62,6 +64,14 @@ def mine_block():
     last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So we need a genesis block (see line 2).
     hashed_block = hash_block(last_block) 
     
+    # extra transaction that rewards the miner
+    reward_transaction = {
+        'sender': 'MINING',
+        'recipient': owner,
+        'amount': MINING_REWARD
+    }
+    open_transactions.append(reward_transaction)
+    
     block = {
         'previous_hash': hashed_block,
         'index': len(blockchain),
@@ -85,7 +95,7 @@ def get_user_choice():
 
 def print_blockchain_elements():
     for block in blockchain:
-        print(block)
+        print(f"Block: {block}")
     else:               # Gets executed when the loop is done
         print('-' * 20)
 
@@ -119,7 +129,7 @@ while menu:
         recipient, amount = tx_data         # unpacken van de tuple 'tx_data' en diens values in de variabelen 'recipient' en 'amount' stoppen
         # Add the transaction to the open_transactions list
         add_transaction(recipient, amount=amount) # kwarg zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
-        print(open_transactions)
+        print(f"Open transactions: {open_transactions}")
     
     elif user_choice == '2':
         if mine_block():                # Als mine_block() True returned,
@@ -129,7 +139,7 @@ while menu:
         print_blockchain_elements()
     
     elif user_choice == '4':
-        print(participants)
+        print(f"Participants: {participants}")
     
     elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain into a value of 2
         if len(blockchain) >= 1:
@@ -150,7 +160,7 @@ while menu:
         print('Invalid blockchain!')
         break
 
-    print(get_balance('Joris'))         # Pas als je de open transactions hebt gemined worden de nieuwe balance van Joris getoond
+    print(f"Balance: {get_balance('Joris')}")         # Pas als je de open transactions hebt gemined worden de nieuwe balance van Joris getoond
 
 # gets executed when the loop is done (doesn't work when you break out of the loop)
 else:
