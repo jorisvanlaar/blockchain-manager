@@ -86,12 +86,13 @@ def mine_block():
         'recipient': owner,
         'amount': MINING_REWARD
     }
-    open_transactions.append(reward_transaction)
+    copied_open_transactions = open_transactions[:]     # de open_transactons list kopieren dmv slicen, 
+    copied_open_transactions.append(reward_transaction) # zodat je voorkomt dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
     
     block = {
         'previous_hash': hashed_block,
         'index': len(blockchain),
-        'transactions': open_transactions
+        'transactions': copied_open_transactions
     }
     blockchain.append(block)
     return True
@@ -128,7 +129,6 @@ def verify_chain():
 
 
 menu = True
-
 while menu:
     print('Please choose:')
     print('1: Add a new transaction')
