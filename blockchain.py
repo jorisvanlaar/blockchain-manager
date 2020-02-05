@@ -20,6 +20,9 @@ def hash_block(block):
 
 def get_balance(participant):
     tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]    # # nested list comprehension die de amount opvraagt van alle transactions van de ingegeven participant, en dit teruggeeft in een list-kopie
+    open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]  # verzamelt de amounts van een participant die in de open_transactions list staan, in een nieuwe list
+    tx_sender.append(open_tx_sender)    # Nu bevat de tx_sender zowel een list van alle transaction-amounts die een participant in de blockchain heeft verstuurd, en een list van alle amounts die de participtant heeft verstuurd en nog in de open_transaction staan.
+
     amount_sent = 0
     for tx in tx_sender:
         if len(tx) > 0:
@@ -41,6 +44,16 @@ def get_last_blockchain_value():
     return blockchain[-1]
 
 
+def verify_transaction(transaction):
+    """ Verifies whether the sender has enough funds to send a transaction """
+    sender_balance = get_balance(transaction['sender'])
+    # if sender_balance >= transaction['amount']:
+    #     return True
+    # else:
+    #     return False
+    return sender_balance >= transaction['amount']  # Bovenstaande if/else onnodig
+
+
 def add_transaction(recipient, sender=owner, amount=1.0):
     """ Store a new transaction in the open transactions 
     
@@ -54,9 +67,12 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         'recipient': recipient, 
         'amount': amount
     }
-    open_transactions.append(transaction)
-    participants.add(sender)
-    participants.add(recipient)
+    if verify_transaction(transaction):
+        open_transactions.append(transaction)
+        participants.add(sender)
+        participants.add(recipient)
+        return True
+    return False
 
 
 def mine_block():
@@ -128,7 +144,10 @@ while menu:
         tx_data = get_transaction_values()  
         recipient, amount = tx_data         # unpacken van de tuple 'tx_data' en diens values in de variabelen 'recipient' en 'amount' stoppen
         # Add the transaction to the open_transactions list
-        add_transaction(recipient, amount=amount) # kwarg zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
+        if add_transaction(recipient, amount=amount): # kwarg zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
+            print('Added transaction!')
+        else:
+            print('Transaction failed, insufficient funds!')
         print(f"Open transactions: {open_transactions}")
     
     elif user_choice == '2':
