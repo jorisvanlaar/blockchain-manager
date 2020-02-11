@@ -9,7 +9,7 @@ genesis_block = {
 blockchain = [genesis_block]
 open_transactions = []
 owner = 'Joris'
-participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values. 
+participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values, 
                             # Python begrijpt dat het geen dictionary is, want geen key-value pairs)
 
 
@@ -19,7 +19,8 @@ def hash_block(block):
 
 
 def get_balance(participant):
-    tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]    # # nested list comprehension die de amount opvraagt van alle transactions van de ingegeven participant, en dit teruggeeft in een list-kopie
+    """ Subtracts the total amount a participant has send from the total amount he has received and returns this balance """
+    tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]    # nested list comprehension die de amount opvraagt van alle transactions van de ingegeven participant, en dit teruggeeft in een list-kopie
     open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]  # verzamelt de amounts van een participant die in de open_transactions list staan, in een nieuwe list
     tx_sender.append(open_tx_sender)    # Nu bevat de tx_sender zowel een list van alle transaction-amounts die een participant in de blockchain heeft verstuurd, en een list van alle amounts die de participtant heeft verstuurd en nog in de open_transaction staan.
 
@@ -51,14 +52,14 @@ def verify_transaction(transaction):
     #     return True
     # else:
     #     return False
-    return sender_balance >= transaction['amount']  # Bovenstaande if/else onnodig
+    return sender_balance >= transaction['amount']  # Bovenstaande if/else onnodig, dit returned ook een boolean
 
 
 def add_transaction(recipient, sender=owner, amount=1.0):
     """ Store a new transaction in the open transactions 
     
     Arguments:
-        :sender: The sender of the coins.
+        :sender: The sender of the coins (default = owner).
         :recipient: The recipient of the coins.
         :amount: The amount of coins sent with the transaction (default = 1.0)
     """
@@ -77,7 +78,7 @@ def add_transaction(recipient, sender=owner, amount=1.0):
 
 def mine_block():
     """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
-    last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So we need a genesis block (see line 2).
+    last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So we need a genesis block for the blockchain to prevent this.
     hashed_block = hash_block(last_block) 
     
     # extra transaction that rewards the miner
@@ -123,7 +124,7 @@ def verify_chain():
                                                  # In this case we immediately unpack the tuple values to the variables 'index' and 'block'
         if index == 0:
             continue
-        if block['previous_hash'] != hash_block(blockchain[index - 1]):  # Je vergelijkt hier dus of de reeds opgeslagen hash van het voorgaande block (in 'previous_hash') overeenkomt met de hash die je nu nogmaals laat berekenen/returnen
+        if block['previous_hash'] != hash_block(blockchain[index - 1]):  # Je vergelijkt hier dus of de reeds opgeslagen hash van het voorgaande block ('previous_hash') overeenkomt met de hash die je nu nogmaals laat berekenen/returnen
             return False
     return True
 
@@ -179,7 +180,7 @@ while menu:
         print('Invalid blockchain!')
         break
 
-    print(f"Balance: {get_balance('Joris')}")         # Pas als je de open transactions hebt gemined worden de nieuwe balance van Joris getoond
+    print(f"Balance: {get_balance('Joris'):.2f}")         # Pas als je de open transactions hebt gemined wordt de nieuwe balance van Joris getoond. Note dat je de float limit tot maar 2 decimalen.
 
 # gets executed when the loop is done (doesn't work when you break out of the loop)
 else:
