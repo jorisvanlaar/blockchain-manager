@@ -1,14 +1,20 @@
 # Initializing global variables
+
+# The reward miners get for creating a new block
 MINING_REWARD = 10  # global constant variable
 
+# The starting block for the blockchain
 genesis_block = {
         'previous_hash': '',
         'index': 0,
         'transactions': []
     }
+# Initializing an empty blockchain list
 blockchain = [genesis_block]
+# Unhandled transactions
 open_transactions = []
 owner = 'Joris'
+# Myself + other people sending/receiving crypto
 participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values, 
                             # Python begrijpt dat het geen dictionary is, want geen key-value pairs)
 
@@ -19,22 +25,34 @@ def hash_block(block):
 
 
 def get_balance(participant):
-    """ Subtracts the total amount a participant has send from the total amount he has received and returns this balance """
+    """ Subtracts the total amount a participant has sent from the total amount he has received and returns this balance """
+
+    # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
+    # This fetches sent amounts of transactions that were already included in blocks of the blockchain
     tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]    # nested list comprehension die de amount opvraagt van alle transactions van de ingegeven participant, en dit teruggeeft in een list-kopie
+    
+    # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
+    # This fetches sent amounts of open transactions (to avoid double spending)
     open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]  # verzamelt de amounts van een participant die in de open_transactions list staan, in een nieuwe list
     tx_sender.append(open_tx_sender)    # Nu bevat de tx_sender zowel een list van alle transaction-amounts die een participant in de blockchain heeft verstuurd, en een list van alle amounts die de participtant heeft verstuurd en nog in de open_transaction staan.
 
     amount_sent = 0
+    # Calculate the total amount of coins sent
     for tx in tx_sender:
         if len(tx) > 0:
-            amount_sent += tx[0]
+            amount_sent += sum(tx)
+    # Je had ipv de for-loop hierboven ook een reduce function kunnen gebruiken om amount_sent te berekenen
     
+    # This fetches received amounts of transactions that were already included in blocks of the blockchain
+    # I ignore open transactions here because you shouldn't be able to spend coins before the transaction was confirmed + included in a block
     tx_recipient = [[tx['amount'] for tx in block['transactions'] if tx['recipient'] == participant] for block in blockchain]
     amount_received = 0
     for tx in tx_recipient:
         if len(tx) > 0:
-            amount_received += tx[0]
+            amount_received += sum(tx)
+    # Je had ipv de for-loop hierboven ook een reduce function kunnen gebruiken om amount_received te berekenen 
 
+    # Return the total balance
     return amount_received - amount_sent         
 
 
@@ -78,7 +96,9 @@ def add_transaction(recipient, sender=owner, amount=1.0):
 
 def mine_block():
     """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
-    last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So we need a genesis block for the blockchain to prevent this.
+    # Fetch the currently last block of the blockchain
+    last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So I need a genesis block for the blockchain to prevent this.
+    # Hash the last block (=> to be able to compare it to the stored hash value)
     hashed_block = hash_block(last_block) 
     
     # extra transaction that rewards the miner
@@ -87,6 +107,8 @@ def mine_block():
         'recipient': owner,
         'amount': MINING_REWARD
     }
+    # Copy transaction instead of manipulating the original open_transactions list
+    # This ensures that if for some reason the mining should fail, I don't have the reward transaction stored in the open transactions
     copied_open_transactions = open_transactions[:]     # de open_transactons list kopieren dmv slicen, 
     copied_open_transactions.append(reward_transaction) # zodat je voorkomt dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
     
@@ -121,7 +143,7 @@ def print_blockchain_elements():
 def verify_chain():
     """ Compares the stored 'previous_hash' in a block with a recalculated hash """
     for (index, block) in enumerate(blockchain): # if you wrap a list with the helper function 'enumerate', it will give you back a tuple consisting of the index & value of an element
-                                                 # In this case we immediately unpack the tuple values to the variables 'index' and 'block'
+                                                 # In this case I immediately unpack the tuple values to the variables 'index' and 'block'
         if index == 0:
             continue
         if block['previous_hash'] != hash_block(blockchain[index - 1]):  # Je vergelijkt hier dus of de reeds opgeslagen hash van het voorgaande block ('previous_hash') overeenkomt met de hash die je nu nogmaals laat berekenen/returnen
@@ -130,6 +152,8 @@ def verify_chain():
 
 
 menu = True
+# A while loop for the user input interface
+# It's a loop that exits once waiting_for_input becomes False or when break is called
 while menu:
     print('Please choose:')
     print('1: Add a new transaction')
@@ -162,7 +186,7 @@ while menu:
         print(f"Participants: {participants}")
     
     elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain into a value of 2
-        if len(blockchain) >= 1:
+        if len(blockchain) >= 1:        # Makes sure that you don't try to "hack" the blockchain if it's empty
             blockchain[0] = {
                 'previous_hash': '',
                 'index': 0,
@@ -170,7 +194,7 @@ while menu:
             }
     elif user_choice.upper() == 'Q':
         # break
-        menu = False
+        menu = False        # This will lead to the loop to exit because it's running condition becomes False
     
     else:
         print('Input was invalid, please pick a value from the list!')
@@ -178,7 +202,7 @@ while menu:
     if not verify_chain():              # if verify_chain() returns False -> print a message
         print_blockchain_elements()
         print('Invalid blockchain!')
-        break
+        break                           # Break out of the loop
 
     print(f"Balance: {get_balance('Joris'):.2f}")         # Pas als je de open transactions hebt gemined wordt de nieuwe balance van Joris getoond. Note dat je de float limit tot maar 2 decimalen.
 
