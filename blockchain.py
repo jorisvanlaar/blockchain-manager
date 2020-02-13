@@ -1,5 +1,7 @@
-# Initializing global variables
+import hashlib
+import json     # geimporteerd omdat je mbv json objecten kunt encoden als een string (wat je wilt voor het encoden van een block naar een string in de hash-function)
 
+# Initializing global variables
 # The reward miners get for creating a new block
 MINING_REWARD = 10  # global constant variable
 
@@ -21,8 +23,11 @@ participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values,
 
 def hash_block(block):
     """ Returns a hash in the form of a string (thats separated by -'s using list comprehension) """
-    return '-'.join([str(block[key]) for key in block]) 
-
+    # return '-'.join([str(block[key]) for key in block])   # ipv een pseudo-hash in string-vorm, een echte hash gebruiken mbv hashlib
+    return hashlib.sha256(json.dumps(block).encode()).hexdigest()       
+    # de json.dumps(block).encode() encode een block naar een string
+    # de hashlib.sha256() method is een algoritme die een 64-character hash creeert obv een string, en zorgt ervoor dat dezelfde input altijd tot dezelfde hash leidt (wat nodig is om de hash van het vorige block te kunnen validaten)
+    # de hexdigest() method convert de 'bytehash' die wordt gegenereerd door sha256() naar een gewone string                                                         
 
 def get_balance(participant):
     """ Subtracts the total amount a participant has sent from the total amount he has received and returns this balance """
@@ -100,6 +105,7 @@ def mine_block():
     last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So I need a genesis block for the blockchain to prevent this.
     # Hash the last block (=> to be able to compare it to the stored hash value)
     hashed_block = hash_block(last_block) 
+    print(f"Hash current last block in the blockchain: {hashed_block}")
     
     # extra transaction that rewards the miner
     reward_transaction = {
@@ -185,7 +191,7 @@ while menu:
     elif user_choice == '4':
         print(f"Participants: {participants}")
     
-    elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain into a value of 2
+    elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain
         if len(blockchain) >= 1:        # Makes sure that you don't try to "hack" the blockchain if it's empty
             blockchain[0] = {
                 'previous_hash': '',
