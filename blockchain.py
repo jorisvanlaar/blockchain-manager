@@ -1,5 +1,6 @@
 import hashlib
 import json     # geimporteerd omdat je mbv json objecten kunt encoden als een string (wat je wilt voor het encoden van een block naar een string in de hash-function)
+from collections import OrderedDict  # geimporteerd om ervoor te zorgen dat al je transaction dictionaries een vaste volgorder/order krijgen
 
 # Initializing global variables
 # The reward miners get for creating a new block
@@ -9,7 +10,8 @@ MINING_REWARD = 10  # global constant variable
 genesis_block = {
         'previous_hash': '',
         'index': 0,
-        'transactions': []
+        'transactions': [],
+        'proof': 100
     }
 # Initializing an empty blockchain list
 blockchain = [genesis_block]
@@ -22,12 +24,40 @@ participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values,
 
 
 def hash_block(block):
-    """ Returns a hash in the form of a string (thats separated by -'s using list comprehension) """
+    """ Hashes a block and returns this hash in the form of a string (thats separated by -'s using list comprehension) """
     # return '-'.join([str(block[key]) for key in block])   # ipv een pseudo-hash in string-vorm, een echte hash gebruiken mbv hashlib
-    return hashlib.sha256(json.dumps(block).encode()).hexdigest()       
+    return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()       
     # de json.dumps(block).encode() encode een block naar een string
+    # het sort_keys=True argument voorkomt dat 
     # de hashlib.sha256() method is een algoritme die een 64-character hash creeert obv een string, en zorgt ervoor dat dezelfde input altijd tot dezelfde hash leidt (wat nodig is om de hash van het vorige block te kunnen validaten)
-    # de hexdigest() method convert de 'bytehash' die wordt gegenereerd door sha256() naar een gewone string                                                         
+    # de hexdigest() method convert de 'bytehash' die wordt gegenereerd door sha256() naar een gewone string
+
+    # Zowel een block als een transaction zijn dictionaries. Het probleem van dictionaries is dat ze unordered zijn. 
+    # Dit kan betekenen dat de volgorde van de key-value pairs van een block of transaction kan veranderen, 
+    # Wat weer kan betekenen dat het hashen van een block verschillende hashes voor dezelfde block kan opleveren, omdat de order van een block en/of transaction kan zijn veranderd.
+    # Het gevolg hiervan is dat een correct block bij het checken van de hash alsnog als invalid kan worden gezien.
+    # Dit is te fixen met het named argument 'sort_keys' voor de json.dumps() method. Dit zorgt ervoor dat de keys van de dictionary gesorteerd worden voordat deze gedumpt wordt naar een string.
+    # Wat betekent dat dezelfde dictionary altijd tot dezelfde string/hash leidt, ook al wijzigt de volgorde van de dictionary.
+    # Het vastzetten van de order voor de transaction-dictionaries die je gebruikt in valid_proof() doe je door een OrderedDict te gebruiken ipv een standaard dictionary in add_transaction() en mine_block()
+     
+
+
+def valid_proof(transactions, last_hash, proof):
+    """ Generates a hash for a new block and checks whether it fulfills the PoW criteria """
+    guess = (str(transactions) + str(last_hash) + str(proof)).encode()  # een lange string maken bestaande uit de transactions, last/previous hash en een 'proof' nummer
+    guess_hash = hashlib.sha256(guess).hexdigest()                      # een hash maken van de guess string, hexdigest() om van de hash een weer een leesbare string te maken anders kan je niet checken of ie voldoet
+    print(guess_hash)
+    return guess_hash[0:2] == '00'                                      # checken of de guess_hash voldoet aan een PoW criterium waarbij de eerste twee karakters van de hash een 0 moeten zijn
+
+
+def proof_of_work():
+    last_block = blockchain[-1]                                         # Verkrijg het huidige laatste block van de chain,
+    last_hash = hash_block(last_block)                                  # en hash die.      
+    proof = 0                                                           # Initialiseer het proof-nummer op 0
+    while not valid_proof(open_transactions, last_hash, proof):         # Met een while-loop checken of valid_proof() op een gegevent moment True returned,
+        proof += 1                                                      # door het proof-nummer steeds met 1 te verhogen
+    return proof                                                        # En return het proof-nummer dat er voor heeft gezorgd dat aan de PoW criteria is voldaan. 
+                                                                        # Dit nummer ga je namelijk toevoegen aan het nieuwe block (bestaande uit de open_transactions) dat aan de chain gaat worden toegevoegd
 
 def get_balance(participant):
     """ Subtracts the total amount a participant has sent from the total amount he has received and returns this balance """
@@ -86,11 +116,17 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         :recipient: The recipient of the coins.
         :amount: The amount of coins sent with the transaction (default = 1.0)
     """
-    transaction = {
-        'sender': sender, 
-        'recipient': recipient, 
-        'amount': amount
-    }
+    # transaction = {
+    #     'sender': sender, 
+    #     'recipient': recipient, 
+    #     'amount': amount
+    # }
+
+    # ipv (zoals bovenstaand) een transaction in de vorm van een standaard dictionary aan te maken, 
+    # ga je dat doen met een OrderedDict. Om ervoor te zorgen dat de order van je transactions altijd vaststaat. 
+    # Dit is nodig zodat je dan altijd dezelfde correcte hash genereert voor eenzelfde block in de valid_proof() method
+    # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is.
+    transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
     if verify_transaction(transaction):
         open_transactions.append(transaction)
         participants.add(sender)
@@ -103,16 +139,22 @@ def mine_block():
     """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
     # Fetch the currently last block of the blockchain
     last_block = blockchain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So I need a genesis block for the blockchain to prevent this.
-    # Hash the last block (=> to be able to compare it to the stored hash value)
+    # Hash the last block of the chain (to be able to compare it in the verify_chain() method)
     hashed_block = hash_block(last_block) 
-    print(f"Hash current last block in the blockchain: {hashed_block}")
+    # print(f"Hash current last block in the blockchain: {hashed_block}")
+    
+    proof = proof_of_work()                 # laat een geldig PoW nummer genereren
     
     # extra transaction that rewards the miner
-    reward_transaction = {
-        'sender': 'MINING',
-        'recipient': owner,
-        'amount': MINING_REWARD
-    }
+    # reward_transaction = {
+    #     'sender': 'MINING',
+    #     'recipient': owner,
+    #     'amount': MINING_REWARD
+    # }
+    
+    # Ook voor de reward_transaction de order vastzetten (net als gewone transaction in add_transaction()) mbv een OrderedDict 
+    reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
+    
     # Copy transaction instead of manipulating the original open_transactions list
     # This ensures that if for some reason the mining should fail, I don't have the reward transaction stored in the open transactions
     copied_open_transactions = open_transactions[:]     # de open_transactons list kopieren dmv slicen, 
@@ -121,7 +163,8 @@ def mine_block():
     block = {
         'previous_hash': hashed_block,
         'index': len(blockchain),
-        'transactions': copied_open_transactions
+        'transactions': copied_open_transactions,
+        'proof': proof
     }
     blockchain.append(block)
     return True
@@ -147,12 +190,16 @@ def print_blockchain_elements():
 
 
 def verify_chain():
-    """ Compares the stored 'previous_hash' in a block with a recalculated hash """
+    """ Compares the stored 'previous_hash' in a block with a recalculation of the hash which you do here """
     for (index, block) in enumerate(blockchain): # if you wrap a list with the helper function 'enumerate', it will give you back a tuple consisting of the index & value of an element
                                                  # In this case I immediately unpack the tuple values to the variables 'index' and 'block'
         if index == 0:
             continue
         if block['previous_hash'] != hash_block(blockchain[index - 1]):  # Je vergelijkt hier dus of de reeds opgeslagen hash van het voorgaande block ('previous_hash') overeenkomt met de hash die je nu nogmaals laat berekenen/returnen
+            print('Previous hash is invalid')
+            return False
+        if not valid_proof(block['transactions'][:-1], block['previous_hash'], block['proof']):  # mbv slicing het laatste element van de transactions (oftewel de reward_transaction) excluden, omdat je die ook niet had meegenomen bij het berekenen van het PoW nummer in mine_block()
+            print('Proof of Work is invalid')
             return False
     return True
 
