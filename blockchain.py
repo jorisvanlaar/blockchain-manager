@@ -1,6 +1,6 @@
 import hashlib
-import json     # geimporteerd omdat je mbv json objecten kunt encoden als een string (wat je wilt voor het encoden van een block naar een string in de hash-function)
 from collections import OrderedDict  # geimporteerd om ervoor te zorgen dat al je transaction dictionaries een vaste volgorder/order krijgen
+from hash_util import hash_string_256, hash_block
 
 # Initializing global variables
 # The reward miners get for creating a new block
@@ -23,29 +23,10 @@ participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values,
                             # Python begrijpt dat het geen dictionary is, want geen key-value pairs)
 
 
-def hash_block(block):
-    """ Hashes a block and returns this hash in the form of a string (thats separated by -'s using list comprehension) """
-    # return '-'.join([str(block[key]) for key in block])   # ipv een pseudo-hash in string-vorm, een echte hash gebruiken mbv hashlib
-    return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()       
-    # de json.dumps(block).encode() encode een block naar een string
-    # het sort_keys=True argument voorkomt dat 
-    # de hashlib.sha256() method is een algoritme die een 64-character hash creeert obv een string, en zorgt ervoor dat dezelfde input altijd tot dezelfde hash leidt (wat nodig is om de hash van het vorige block te kunnen validaten)
-    # de hexdigest() method convert de 'bytehash' die wordt gegenereerd door sha256() naar een gewone string
-
-    # Zowel een block als een transaction zijn dictionaries. Het probleem van dictionaries is dat ze unordered zijn. 
-    # Dit kan betekenen dat de volgorde van de key-value pairs van een block of transaction kan veranderen, 
-    # Wat weer kan betekenen dat het hashen van een block verschillende hashes voor dezelfde block kan opleveren, omdat de order van een block en/of transaction kan zijn veranderd.
-    # Het gevolg hiervan is dat een correct block bij het checken van de hash alsnog als invalid kan worden gezien.
-    # Dit is te fixen met het named argument 'sort_keys' voor de json.dumps() method. Dit zorgt ervoor dat de keys van de dictionary gesorteerd worden voordat deze gedumpt wordt naar een string.
-    # Wat betekent dat dezelfde dictionary altijd tot dezelfde string/hash leidt, ook al wijzigt de volgorde van de dictionary.
-    # Het vastzetten van de order voor de transaction-dictionaries die je gebruikt in valid_proof() doe je door een OrderedDict te gebruiken ipv een standaard dictionary in add_transaction() en mine_block()
-     
-
-
 def valid_proof(transactions, last_hash, proof):
     """ Generates a hash for a new block and checks whether it fulfills the PoW criteria """
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()  # een lange string maken bestaande uit de transactions, last/previous hash en een 'proof' nummer
-    guess_hash = hashlib.sha256(guess).hexdigest()                      # een hash maken van de guess string, hexdigest() om van de hash een weer een leesbare string te maken anders kan je niet checken of ie voldoet
+    guess_hash = hash_string_256(guess)                     # een hash maken van de guess string, hexdigest() om van de hash een weer een leesbare string te maken anders kan je niet checken of ie voldoet
     print(guess_hash)
     return guess_hash[0:2] == '00'                                      # checken of de guess_hash voldoet aan een PoW criterium waarbij de eerste twee karakters van de hash een 0 moeten zijn
 
@@ -56,7 +37,7 @@ def proof_of_work():
     proof = 0                                                           # Initialiseer het proof-nummer op 0
     while not valid_proof(open_transactions, last_hash, proof):         # Met een while-loop checken of valid_proof() op een gegevent moment True returned,
         proof += 1                                                      # door het proof-nummer steeds met 1 te verhogen
-    return proof                                                        # En return het proof-nummer dat er voor heeft gezorgd dat aan de PoW criteria is voldaan. 
+    return proof                                                       # En return het proof-nummer dat er voor heeft gezorgd dat aan de PoW criteria is voldaan. 
                                                                         # Dit nummer ga je namelijk toevoegen aan het nieuwe block (bestaande uit de open_transactions) dat aan de chain gaat worden toegevoegd
 
 def get_balance(participant):
