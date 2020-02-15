@@ -132,7 +132,6 @@ def mine_block():
     #     'recipient': owner,
     #     'amount': MINING_REWARD
     # }
-    
     # Ook voor de reward_transaction de order vastzetten (net als gewone transaction in add_transaction()) mbv een OrderedDict 
     reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
     

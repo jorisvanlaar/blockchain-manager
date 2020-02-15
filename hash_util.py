@@ -9,7 +9,7 @@ def hash_block(block):
     """ Hashes a block and returns this hash in the form of a string (thats separated by -'s using list comprehension) """
     # return '-'.join([str(block[key]) for key in block])   # ipv een pseudo-hash in string-vorm, een echte hash gebruiken mbv hashlib
     # return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()      
-    return hash_string_256(json.dumps(block, sort_keys=True).encode())  # ipv de syntax de line hierboven, kan het korter door gebruik te maken van een aparte, custom hash_string_256() function
+    return hash_string_256(json.dumps(block, sort_keys=True).encode())  # ipv de syntax van de line hierboven, kan het korter door het schrijven van een aparte, custom hash_string_256() function
     
     # de json.dumps(block).encode() encode een block naar een string
     # het sort_keys=True argument voorkomt dat 
