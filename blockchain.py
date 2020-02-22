@@ -1,6 +1,7 @@
 import hashlib
 from collections import OrderedDict  # geimporteerd om ervoor te zorgen dat al je transaction dictionaries een vaste volgorder/order krijgen
 from hash_util import hash_string_256, hash_block
+import json
 
 # Initializing global variables
 # The reward miners get for creating a new block
@@ -23,6 +24,50 @@ participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values,
                             # Python begrijpt dat het geen dictionary is, want geen key-value pairs)
 
 
+def load_data():
+    """ Opens the blockchain & open transactions from a file an initializes the blockchain and open transactions """
+    with open('blockchain.txt', 'r') as file:
+        file_content = file.readlines()                     # readlines() returns a list with the content of the file that's being read
+        global blockchain
+        global open_transactions
+        blockchain = json.loads(file_content[0][:-1])       # deserialiseren van de opgeslagen json-data terug naar een Python list. En mbv slicing het laatste karakter ('/n') excluden
+        
+        # De blockchain wordt als invalid gezien op het moment dat je de data inlaad en de transactions van een block niet meer een OrderedDict zijn (terwijl je de transactions wel als OrderedDict in add_transaction() had toegevoegd.
+        # Er is dus een verschil ontstaan tussen de oorspronkelijke blockchain data en de blockchain data die je inlaadt. 
+        # Dit voorkom je door met een for-loop door de ingeladen blockchain te gaan (previous_hash, index, proof laat je ongewijzigd),
+        # en de transactions te overwriten (mbv een list comprehension) zodat elk block weer wel een OrderedDict is.
+        updated_blockchain = []
+        for block in blockchain:
+            updated_block = {
+                'previous_hash': block['previous_hash'],
+                'index': block['index'],
+                'proof': block['proof'],
+                'transactions': [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
+            }
+            updated_blockchain.append(updated_block)
+        blockchain = updated_blockchain
+        
+        # Ook voor de open_transactions geldt dat die nu niet worden ingeladen als een OrderedDict wat resulteert in een invalid blockchain,
+        # dus die moet ook bij het inladen omgezet worden naar een OrderedDict:
+        open_transactions = json.loads(file_content[1])
+        updated_transactions = []
+        for tx in open_transactions:
+            updated_transaction = OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
+            updated_transactions.append(updated_transaction)
+        open_transactions = updated_transactions
+
+
+load_data()             # load_data() uitvoeren als je blockchain.py runned
+
+
+def save_data():
+    """ Stores the blockchain and open transactions in a file """
+    with open('blockchain.txt', 'w') as file:
+        file.write(json.dumps(blockchain))  # json.dumps() zorgt ervoor dat de blockchain-list wordt geconvert naar json-data (een json-string). Want als je een list als een normale string opslaat in een .txt bestand, krijg je die niet meer terug-geconvert naar een list bij het inladen. Dat kan met json-data die je opslaat in een .txt wel. 
+        file.write('\n')
+        file.write(json.dumps(open_transactions))
+
+
 def valid_proof(transactions, last_hash, proof):
     """ Generates a hash for a new block and checks whether it fulfills the PoW criteria """
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()  # een lange string maken bestaande uit de transactions, last/previous hash en een 'proof' nummer
@@ -38,7 +83,7 @@ def proof_of_work():
     while not valid_proof(open_transactions, last_hash, proof):         # Met een while-loop checken of valid_proof() op een gegevent moment True returned,
         proof += 1                                                      # door het proof-nummer steeds met 1 te verhogen
     return proof                                                       # En return het proof-nummer dat er voor heeft gezorgd dat aan de PoW criteria is voldaan. 
-                                                                        # Dit nummer ga je namelijk toevoegen aan het nieuwe block (bestaande uit de open_transactions) dat aan de chain gaat worden toegevoegd
+                                                                        # Dit nummer ga je namelijk toevoegen aan het nieuwe block (opgebouwd uit de huidige open_transactions) dat aan de chain gaat worden toegevoegd
 
 def get_balance(participant):
     """ Subtracts the total amount a participant has sent from the total amount he has received and returns this balance """
@@ -112,6 +157,7 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         open_transactions.append(transaction)
         participants.add(sender)
         participants.add(recipient)
+        save_data()
         return True
     return False
 
@@ -211,6 +257,7 @@ while menu:
     elif user_choice == '2':
         if mine_block():                # Als mine_block() True returned,
             open_transactions = []      # leeg dan de open_transactions
+            save_data()
     
     elif user_choice == '3':
         print_blockchain_elements()
