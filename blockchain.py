@@ -75,10 +75,13 @@ load_data()             # load_data() uitvoeren als je blockchain.py runned
 
 def save_data():
     """ Stores the blockchain and open transactions in a file """
-    with open('blockchain.txt', 'w') as file:
-        file.write(json.dumps(blockchain))  # json.dumps() zorgt ervoor dat de blockchain-list wordt geconvert naar json-data (een json-string). Want als je een list als een normale string opslaat in een .txt bestand, krijg je die niet meer terug-geconvert naar een list bij het inladen. Dat kan met json-data die je opslaat in een .txt wel. 
-        file.write('\n')
-        file.write(json.dumps(open_transactions))
+    try:
+        with open('blockchain.txt', 'w') as file:
+            file.write(json.dumps(blockchain))  # json.dumps() zorgt ervoor dat de blockchain-list wordt geconvert naar json-data (een json-string). Want als je een list als een normale string opslaat in een .txt bestand, krijg je die niet meer terug-geconvert naar een list bij het inladen. Dat kan met json-data die je opslaat in een .txt wel. 
+            file.write('\n')
+            file.write(json.dumps(open_transactions))
+    except IOError:
+        print('Saving failed!')
 
 
 def valid_proof(transactions, last_hash, proof):
