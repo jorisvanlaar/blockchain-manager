@@ -7,15 +7,8 @@ import json
 # The reward miners get for creating a new block
 MINING_REWARD = 10  # global constant variable
 
-# The starting block for the blockchain
-genesis_block = {
-        'previous_hash': '',
-        'index': 0,
-        'transactions': [],
-        'proof': 100
-    }
 # Initializing an empty blockchain list
-blockchain = [genesis_block]
+blockchain = []
 # Unhandled transactions
 open_transactions = []
 owner = 'Joris'
@@ -26,35 +19,55 @@ participants = {'Joris'}    # Syntax voor een set (stored alleen unieke values,
 
 def load_data():
     """ Opens the blockchain & open transactions from a file an initializes the blockchain and open transactions """
-    with open('blockchain.txt', 'r') as file:
-        file_content = file.readlines()                     # readlines() returns a list with the content of the file that's being read
-        global blockchain
-        global open_transactions
-        blockchain = json.loads(file_content[0][:-1])       # deserialiseren van de opgeslagen json-data terug naar een Python list. En mbv slicing het laatste karakter ('/n') excluden
-        
-        # De blockchain wordt als invalid gezien op het moment dat je de data inlaad en de transactions van een block niet meer een OrderedDict zijn (terwijl je de transactions wel als OrderedDict in add_transaction() had toegevoegd.
-        # Er is dus een verschil ontstaan tussen de oorspronkelijke blockchain data en de blockchain data die je inlaadt. 
-        # Dit voorkom je door met een for-loop door de ingeladen blockchain te gaan (previous_hash, index, proof laat je ongewijzigd),
-        # en de transactions te overwriten (mbv een list comprehension) zodat elk block weer wel een OrderedDict is.
-        updated_blockchain = []
-        for block in blockchain:
-            updated_block = {
-                'previous_hash': block['previous_hash'],
-                'index': block['index'],
-                'proof': block['proof'],
-                'transactions': [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
-            }
-            updated_blockchain.append(updated_block)
-        blockchain = updated_blockchain
+    global blockchain
+    global open_transactions
+
+    try:
+        with open('blockchain.txt', 'r') as file:
+            file_content = file.readlines()                     # readlines() returns a list with the content of the file that's being read
+            blockchain = json.loads(file_content[0][:-1])       # deserialiseren van de opgeslagen json-data terug naar een Python list. En mbv slicing het laatste karakter ('/n') excluden
+            
+            # De blockchain wordt als invalid gezien op het moment dat je de data inlaad en de transactions van een block niet meer een OrderedDict zijn (terwijl je de transactions wel als OrderedDict in add_transaction() had toegevoegd. 
+            # Deze OrderedDict informatie gaat namelijk verloren tijdens het wegschrijven van JSON data naar de schijf.
+            # Er is dus een verschil ontstaan tussen de oorspronkelijke blockchain data en de blockchain data die je inlaadt. 
+            # Dit voorkom je door met een for-loop door de ingeladen blockchain te gaan (previous_hash, index, proof laat je ongewijzigd),
+            # en de transactions te overwriten (mbv een list comprehension) zodat elk block weer wel een OrderedDict is.
+            # Misschien dit toch mbv pickle doen, mogelijk minder lines code en het geconvert naar OrderedDicts niet nodig?
+            updated_blockchain = []
+            for block in blockchain:
+                updated_block = {
+                    'previous_hash': block['previous_hash'],
+                    'index': block['index'],
+                    'proof': block['proof'],
+                    'transactions': [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
+                }
+                updated_blockchain.append(updated_block)
+            blockchain = updated_blockchain
         
         # Ook voor de open_transactions geldt dat die nu niet worden ingeladen als een OrderedDict wat resulteert in een invalid blockchain,
         # dus die moet ook bij het inladen omgezet worden naar een OrderedDict:
+        # Misschien dit toch mbv pickle doen, mogelijk minder lines code?
         open_transactions = json.loads(file_content[1])
         updated_transactions = []
         for tx in open_transactions:
             updated_transaction = OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
             updated_transactions.append(updated_transaction)
         open_transactions = updated_transactions
+    except IOError:
+        # print('File not found!')
+        
+        # Wanneer er geen blockchain.txt bestaat, initialiseer dan de blockchain met een genesis block
+        # The starting block for the blockchain
+        genesis_block = {
+                'previous_hash': '',
+                'index': 0,
+                'transactions': [],
+                'proof': 100
+            }
+        
+        blockchain = [genesis_block]    # Initializing an empty blockchain list
+        open_transactions = []          # Unhandled transactions
+    
 
 
 load_data()             # load_data() uitvoeren als je blockchain.py runned
@@ -71,12 +84,12 @@ def save_data():
 def valid_proof(transactions, last_hash, proof):
     """ Generates a hash for a new block and checks whether it fulfills the PoW criteria """
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()  # een lange string maken bestaande uit de transactions, last/previous hash en een 'proof' nummer
-    guess_hash = hash_string_256(guess)                     # een hash maken van de guess string, hexdigest() om van de hash een weer een leesbare string te maken anders kan je niet checken of ie voldoet
-    print(guess_hash)
+    guess_hash = hash_string_256(guess)                                 # een hash maken van de guess string, 
     return guess_hash[0:2] == '00'                                      # checken of de guess_hash voldoet aan een PoW criterium waarbij de eerste twee karakters van de hash een 0 moeten zijn
 
 
 def proof_of_work():
+    """Generate a proof of work for the open transactions, the hash of the previous block and a random number (which is guessed until it fits)."""
     last_block = blockchain[-1]                                         # Verkrijg het huidige laatste block van de chain,
     last_hash = hash_block(last_block)                                  # en hash die.      
     proof = 0                                                           # Initialiseer het proof-nummer op 0
