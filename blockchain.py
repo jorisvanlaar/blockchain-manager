@@ -53,7 +53,7 @@ def load_data():
             updated_transaction = OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
             updated_transactions.append(updated_transaction)
         open_transactions = updated_transactions
-    except IOError:
+    except (IOError, IndexError):
         # print('File not found!')
         
         # Wanneer er geen blockchain.txt bestaat, initialiseer dan de blockchain met een genesis block
@@ -80,7 +80,7 @@ def save_data():
             file.write(json.dumps(blockchain))  # json.dumps() zorgt ervoor dat de blockchain-list wordt geconvert naar json-data (een json-string). Want als je een list als een normale string opslaat in een .txt bestand, krijg je die niet meer terug-geconvert naar een list bij het inladen. Dat kan met json-data die je opslaat in een .txt wel. 
             file.write('\n')
             file.write(json.dumps(open_transactions))
-    except IOError:
+    except (IOError, IndexError):
         print('Saving failed!')
 
 
