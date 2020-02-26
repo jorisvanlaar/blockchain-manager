@@ -1,17 +1,22 @@
 import hashlib
-import json         # geimporteerd omdat je mbv json objecten kunt encoden als een string (wat je wilt voor het encoden van een block naar een string in de hash-function)
+import json         # geimporteerd omdat je mbv json, objecten kunt encoden als een string (wat je wilt voor het encoden van een block naar een string in de hash-function)
 
 
 def hash_string_256(string):
     return hashlib.sha256(string).hexdigest()   # hexdigest() om van de hash een weer een leesbare string te maken anders kan je niet checken of ie voldoet aan de PoW criteria (twee nullen)
 
 def hash_block(block):
-    """ Hashes a block and returns this hash in the form of a string (thats separated by -'s using list comprehension) """
-    # return '-'.join([str(block[key]) for key in block])   # ipv een pseudo-hash in string-vorm, een echte hash gebruiken mbv hashlib
-    # return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()      
-    return hash_string_256(json.dumps(block, sort_keys=True).encode())  # ipv de syntax van de line hierboven, kan het korter door het schrijven van een aparte, custom hash_string_256() function
+    """ Hashes a block and returns this hash in the form of a string """    
     
-    # de json.dumps(block).encode() encode een block naar een string
+    # Een object (in dit geval een Block) is nooit te converten naar json data (string in dit geval),
+    # daarom eerst het Block object converten naar een dictionary, want die is wel als json op te slaan
+    # Het is belangrijk hierbij om een kopie te maken van het block dat je wilt gaan hashen, 
+    # omdat je anders het voorgaande block dat je hebt gehashed overschrijft met een nieuwe dictionary, wanneer je de block wijzigt. 
+    hashable_block = block.__dict__.copy()
+    return hash_string_256(json.dumps(hashable_block, sort_keys=True).encode())  # ipv de syntax van de line hierboven, kan het korter door het schrijven van een aparte, custom hash_string_256() function
+    
+
+    # de json.dumps(hashable_block).encode() encode een block naar een string
     # de hashlib.sha256() method is een algoritme die een 64-character hash creeert obv een string, en zorgt ervoor dat dezelfde input altijd tot dezelfde hash leidt (wat nodig is om de hash van het vorige block te kunnen validaten)
     # de hexdigest() method convert de 'bytehash' die wordt gegenereerd door sha256() naar een gewone string
 

@@ -2,6 +2,7 @@ import hashlib
 from collections import OrderedDict  # geimporteerd om ervoor te zorgen dat al je transaction dictionaries een vaste volgorder/order krijgen
 from hash_util import hash_string_256, hash_block
 import json
+from block import Block
 
 # Initializing global variables
 # The reward miners get for creating a new block
@@ -35,12 +36,8 @@ def load_data():
             # Misschien dit toch mbv pickle doen, mogelijk minder lines code en het geconvert naar OrderedDicts niet nodig?
             updated_blockchain = []
             for block in blockchain:
-                updated_block = {
-                    'previous_hash': block['previous_hash'],
-                    'index': block['index'],
-                    'proof': block['proof'],
-                    'transactions': [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
-                }
+                converted_tx = [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]  # de ingeladen transactions converten naar een OrderedDict mbv een list comprehension
+                updated_block = Block(block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                 updated_blockchain.append(updated_block)
             blockchain = updated_blockchain
         
@@ -58,13 +55,7 @@ def load_data():
         
         # Wanneer er geen blockchain.txt bestaat, initialiseer dan de blockchain met een genesis block
         # The starting block for the blockchain
-        genesis_block = {
-                'previous_hash': '',
-                'index': 0,
-                'transactions': [],
-                'proof': 100
-            }
-        
+        genesis_block = Block(0, '', [], 100, 0)
         blockchain = [genesis_block]    # Initializing an empty blockchain list
         open_transactions = []          # Unhandled transactions
     
@@ -77,7 +68,8 @@ def save_data():
     """ Stores the blockchain and open transactions in a file """
     try:
         with open('blockchain.txt', 'w') as file:
-            file.write(json.dumps(blockchain))  # json.dumps() zorgt ervoor dat de blockchain-list wordt geconvert naar json-data (een json-string). Want als je een list als een normale string opslaat in een .txt bestand, krijg je die niet meer terug-geconvert naar een list bij het inladen. Dat kan met json-data die je opslaat in een .txt wel. 
+            saveable_chain = [block.__dict__ for block in blockchain]   # Objecten kunnen niet als json worden opgeslagen, en aangezien de blockchain een list van Blocks (oftewel objecten) is, moet je die eerst converten naar een list aan bijv. dictionaries
+            file.write(json.dumps(saveable_chain))  # json.dumps() zorgt ervoor dat de blockchain-list wordt geconvert naar json-data (een json-string). Want als je een list als een normale string opslaat in een .txt bestand, krijg je die niet meer terug-geconvert naar een list bij het inladen. Dat kan met json-data die je opslaat in een .txt wel. 
             file.write('\n')
             file.write(json.dumps(open_transactions))
     except (IOError, IndexError):
@@ -106,7 +98,7 @@ def get_balance(participant):
 
     # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
     # This fetches sent amounts of transactions that were already included in blocks of the blockchain
-    tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]    # nested list comprehension die de amount opvraagt van alle transactions van de ingegeven participant, en dit teruggeeft in een list-kopie
+    tx_sender = [[tx['amount'] for tx in block.transactions if tx['sender'] == participant] for block in blockchain]    # nested list comprehension die de amount opvraagt van alle transactions van de ingegeven participant, en dit teruggeeft in een list-kopie
     
     # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
     # This fetches sent amounts of open transactions (to avoid double spending)
@@ -122,7 +114,7 @@ def get_balance(participant):
     
     # This fetches received amounts of transactions that were already included in blocks of the blockchain
     # I ignore open transactions here because you shouldn't be able to spend coins before the transaction was confirmed + included in a block
-    tx_recipient = [[tx['amount'] for tx in block['transactions'] if tx['recipient'] == participant] for block in blockchain]
+    tx_recipient = [[tx['amount'] for tx in block.transactions if tx['recipient'] == participant] for block in blockchain]
     amount_received = 0
     for tx in tx_recipient:
         if len(tx) > 0:
@@ -202,12 +194,7 @@ def mine_block():
     copied_open_transactions = open_transactions[:]     # de open_transactons list kopieren dmv slicen, 
     copied_open_transactions.append(reward_transaction) # zodat je voorkomt dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
     
-    block = {
-        'previous_hash': hashed_block,
-        'index': len(blockchain),
-        'transactions': copied_open_transactions,
-        'proof': proof
-    }
+    block = Block(len(blockchain), hashed_block, copied_open_transactions, proof)
     blockchain.append(block)
     return True
 
@@ -237,10 +224,10 @@ def verify_chain():
                                                  # In this case I immediately unpack the tuple values to the variables 'index' and 'block'
         if index == 0:
             continue
-        if block['previous_hash'] != hash_block(blockchain[index - 1]):  # Je vergelijkt hier dus of de reeds opgeslagen hash van het voorgaande block ('previous_hash') overeenkomt met de hash die je nu nogmaals laat berekenen/returnen
+        if block.previous_hash != hash_block(blockchain[index - 1]):  # Je vergelijkt hier dus of de reeds opgeslagen hash van het voorgaande block ('previous_hash') overeenkomt met de hash die je nu nogmaals laat berekenen/returnen
             print('Previous hash is invalid')
             return False
-        if not valid_proof(block['transactions'][:-1], block['previous_hash'], block['proof']):  # mbv slicing het laatste element van de transactions (oftewel de reward_transaction) excluden, omdat je die ook niet had meegenomen bij het berekenen van het PoW nummer in mine_block()
+        if not valid_proof(block.transactions[:-1], block.previous_hash, block.proof):  # mbv slicing het laatste element van de transactions (oftewel de reward_transaction) excluden, omdat je die ook niet had meegenomen bij het berekenen van het PoW nummer in mine_block()
             print('Proof of Work is invalid')
             return False
     return True
@@ -255,7 +242,6 @@ while menu:
     print('2: Mine a new block')
     print('3: Output the blockchain blocks')
     print('4: Output participants')
-    print('h: Manipulate the chain')
     print('q: Quit')
 
     user_choice = get_user_choice()
@@ -281,13 +267,6 @@ while menu:
     elif user_choice == '4':
         print(f"Participants: {participants}")
     
-    elif user_choice.upper() == 'H':    # Function to manipulate the first block of the chain
-        if len(blockchain) >= 1:        # Makes sure that you don't try to "hack" the blockchain if it's empty
-            blockchain[0] = {
-                'previous_hash': '',
-                'index': 0,
-                'transactions': [{'sender': 'Bas', 'recipient': 'Joris', 'amount': 100.0}]
-            }
     elif user_choice.upper() == 'Q':
         # break
         menu = False        # This will lead to the loop to exit because it's running condition becomes False
