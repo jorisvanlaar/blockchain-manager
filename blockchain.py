@@ -1,8 +1,8 @@
 import hashlib
-from collections import OrderedDict  # geimporteerd om ervoor te zorgen dat al je transaction dictionaries een vaste volgorder/order krijgen
 from hash_util import hash_string_256, hash_block
 import json
 from block import Block
+from transaction import Transaction
 
 # Initializing global variables
 # The reward miners get for creating a new block
@@ -33,21 +33,21 @@ def load_data():
             # Er is dus een verschil ontstaan tussen de oorspronkelijke blockchain data en de blockchain data die je inlaadt. 
             # Dit voorkom je door met een for-loop door de ingeladen blockchain te gaan (previous_hash, index, proof laat je ongewijzigd),
             # en de transactions te overwriten (mbv een list comprehension) zodat elk block weer wel een OrderedDict is.
-            # Misschien dit toch mbv pickle doen, mogelijk minder lines code en het geconvert naar OrderedDicts niet nodig?
             updated_blockchain = []
             for block in blockchain:
-                converted_tx = [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]  # de ingeladen transactions converten naar een OrderedDict mbv een list comprehension
+                # converted_tx = [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]  # de ingeladen transactions converten naar een OrderedDict mbv een list comprehension
+                converted_tx = [Transaction(tx['sender'], tx['recipient'], tx['amount']) for tx in block['transactions']]   # de ingeladen transaction mbv list comprehension converten naar een list aan Transactions ipv een OrderedDict zoals de line hierboven
                 updated_block = Block(block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                 updated_blockchain.append(updated_block)
             blockchain = updated_blockchain
         
         # Ook voor de open_transactions geldt dat die nu niet worden ingeladen als een OrderedDict wat resulteert in een invalid blockchain,
         # dus die moet ook bij het inladen omgezet worden naar een OrderedDict:
-        # Misschien dit toch mbv pickle doen, mogelijk minder lines code?
         open_transactions = json.loads(file_content[1])
         updated_transactions = []
         for tx in open_transactions:
-            updated_transaction = OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
+            # updated_transaction = OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
+            updated_transaction = Transaction(tx['sender'], tx['recipient'], tx['amount'])  # De ingeladen open_transactions converten naar Transaction objecten (ipv OrderedDict zoals de line hierboven) en appenden aan de updated_transactions list
             updated_transactions.append(updated_transaction)
         open_transactions = updated_transactions
     except (IOError, IndexError):
@@ -68,18 +68,24 @@ def save_data():
     """ Stores the blockchain and open transactions in a file """
     try:
         with open('blockchain.txt', 'w') as file:
-            saveable_chain = [block.__dict__ for block in blockchain]   # Objecten kunnen niet als json worden opgeslagen, en aangezien de blockchain een list van Blocks (oftewel objecten) is, moet je die eerst converten naar een list aan bijv. dictionaries
+            # Objecten kunnen niet als json worden opgeslagen, en aangezien de blockchain een list van Blocks (oftewel objecten) is, 
+            # moet je die eerst converten naar een list aan bijv. dictionaries
+            # Maar omdat __dict__ niet ook een list aan objecten BINNEN een object convert naar een dictionary,
+            # gebruik je een nested list comprehension om de transactions binnen een Block ook te converten naar dictionaries
+            saveable_chain = [block.__dict__ for block in [Block(block_el.index, block_el.previous_hash,[tx.__dict__ for tx in block_el.transactions] , block_el.proof, block_el.timestamp  ) for block_el in blockchain]]   
+            
             file.write(json.dumps(saveable_chain))  # json.dumps() zorgt ervoor dat de blockchain-list wordt geconvert naar json-data (een json-string). Want als je een list als een normale string opslaat in een .txt bestand, krijg je die niet meer terug-geconvert naar een list bij het inladen. Dat kan met json-data die je opslaat in een .txt wel. 
             file.write('\n')
-            file.write(json.dumps(open_transactions))
+            saveable_tx = [tx.__dict__ for tx in open_transactions] # Objecten kunnen niet als json worden opgeslagen, en aangezien de open_transactions een list van Transaction objecten is, moet je die eerst converten naar een list aan bijv. dictionaries (want dat datatype is wel weg te schrijven naar JSON)
+            file.write(json.dumps(saveable_tx))
     except (IOError, IndexError):
         print('Saving failed!')
 
 
 def valid_proof(transactions, last_hash, proof):
     """ Generates a hash for a new block and checks whether it fulfills the PoW criteria """
-    guess = (str(transactions) + str(last_hash) + str(proof)).encode()  # een lange string maken bestaande uit de transactions, last/previous hash en een 'proof' nummer
-    guess_hash = hash_string_256(guess)                                 # een hash maken van de guess string, 
+    guess = (str([tx.to_ordered_dict() for tx in transactions]) + str(last_hash) + str(proof)).encode()  # een lange string maken bestaande uit de transactions, last/previous hash en een 'proof' nummer. mbv list comprehension en de to_ordered_dict() method van Transaction alle Transaction objecten converten naar een OrderedDict om zo de order te waarborgen van de transactions
+    guess_hash = hash_string_256(guess)                                 # een hash maken van de guess string. # IMPORTANT: This is NOT the same hash as will be stored in the previous_hash. It's a not a block's hash. It's only used for the proof-of-work algorithm. 
     return guess_hash[0:2] == '00'                                      # checken of de guess_hash voldoet aan een PoW criterium waarbij de eerste twee karakters van de hash een 0 moeten zijn
 
 
@@ -98,11 +104,11 @@ def get_balance(participant):
 
     # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
     # This fetches sent amounts of transactions that were already included in blocks of the blockchain
-    tx_sender = [[tx['amount'] for tx in block.transactions if tx['sender'] == participant] for block in blockchain]    # nested list comprehension die de amount opvraagt van alle transactions van de ingegeven participant, en dit teruggeeft in een list-kopie
+    tx_sender = [[tx.amount for tx in block.transactions if tx.sender == participant] for block in blockchain]    # nested list comprehension die de amount opvraagt van alle transactions van de ingegeven participant, en dit teruggeeft in een list-kopie
     
     # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
     # This fetches sent amounts of open transactions (to avoid double spending)
-    open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]  # verzamelt de amounts van een participant die in de open_transactions list staan, in een nieuwe list
+    open_tx_sender = [tx.amount for tx in open_transactions if tx.sender == participant]  # verzamelt de amounts van een participant die in de open_transactions list staan, in een nieuwe list
     tx_sender.append(open_tx_sender)    # Nu bevat de tx_sender zowel een list van alle transaction-amounts die een participant in de blockchain heeft verstuurd, en een list van alle amounts die de participtant heeft verstuurd en nog in de open_transaction staan.
 
     amount_sent = 0
@@ -114,7 +120,7 @@ def get_balance(participant):
     
     # This fetches received amounts of transactions that were already included in blocks of the blockchain
     # I ignore open transactions here because you shouldn't be able to spend coins before the transaction was confirmed + included in a block
-    tx_recipient = [[tx['amount'] for tx in block.transactions if tx['recipient'] == participant] for block in blockchain]
+    tx_recipient = [[tx.amount for tx in block.transactions if tx.recipient == participant] for block in blockchain]
     amount_received = 0
     for tx in tx_recipient:
         if len(tx) > 0:
@@ -134,12 +140,12 @@ def get_last_blockchain_value():
 
 def verify_transaction(transaction):
     """ Verifies whether the sender has enough funds to send a transaction """
-    sender_balance = get_balance(transaction['sender'])
+    sender_balance = get_balance(transaction.sender)
     # if sender_balance >= transaction['amount']:
     #     return True
     # else:
     #     return False
-    return sender_balance >= transaction['amount']  # Bovenstaande if/else onnodig, dit returned ook een boolean
+    return sender_balance >= transaction.amount  # Bovenstaande if/else onnodig, dit returned ook een boolean
 
 
 def add_transaction(recipient, sender=owner, amount=1.0):
@@ -160,11 +166,10 @@ def add_transaction(recipient, sender=owner, amount=1.0):
     # ga je dat doen met een OrderedDict. Om ervoor te zorgen dat de order van je transactions altijd vaststaat. 
     # Dit is nodig zodat je dan altijd dezelfde correcte hash genereert voor eenzelfde block in de valid_proof() method
     # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is.
-    transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
+    # transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
+    transaction = Transaction(sender, recipient, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
     if verify_transaction(transaction):
         open_transactions.append(transaction)
-        participants.add(sender)
-        participants.add(recipient)
         save_data()
         return True
     return False
@@ -187,7 +192,8 @@ def mine_block():
     #     'amount': MINING_REWARD
     # }
     # Ook voor de reward_transaction de order vastzetten (net als gewone transaction in add_transaction()) mbv een OrderedDict 
-    reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
+    # reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
+    reward_transaction = Transaction('MINING', owner, MINING_REWARD)    # ipv een OrderedDict ook voor de reward_transaction een Transaction object aanmaken 
     
     # Copy transaction instead of manipulating the original open_transactions list
     # This ensures that if for some reason the mining should fail, I don't have the reward transaction stored in the open transactions

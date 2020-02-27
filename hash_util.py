@@ -10,9 +10,10 @@ def hash_block(block):
     
     # Een object (in dit geval een Block) is nooit te converten naar json data (string in dit geval),
     # daarom eerst het Block object converten naar een dictionary, want die is wel als json op te slaan
-    # Het is belangrijk hierbij om een kopie te maken van het block dat je wilt gaan hashen, 
-    # omdat je anders het voorgaande block dat je hebt gehashed overschrijft met een nieuwe dictionary, wanneer je de block wijzigt. 
+    # Het is belangrijk hierbij om een kopie te maken van het block dat je wilt gaan hashen, omdat je het block wilt wijzigen voordat je hem hashed, en je wil het originele block ongewijzigd wilt laten.
+    # __dict__ convert namelijk wel de block naar een dictionary, maar die convert niet OOK een list aan objecten (de transactions, oftewel een list aan Transactions) binnen dit object (de block) naar dictionaries. 
     hashable_block = block.__dict__.copy()
+    hashable_block['transactions'] = [tx.to_ordered_dict() for tx in hashable_block['transactions']] # mbv een list comprehension door de transactions van de block gaan en elke transaction converten naar een OrderedDict, zodat je de order van de transactions kunt waarborgen en je die wel kunt dumpen naar json data (wat met een list aan Transaction objecten niet kon)
     return hash_string_256(json.dumps(hashable_block, sort_keys=True).encode())  # ipv de syntax van de line hierboven, kan het korter door het schrijven van een aparte, custom hash_string_256() function
     
 
@@ -27,3 +28,4 @@ def hash_block(block):
     # Dit is te fixen met het named argument 'sort_keys' voor de json.dumps() method. Dit zorgt ervoor dat de keys van de dictionary gesorteerd worden voordat deze gedumpt wordt naar een string.
     # Wat betekent dat dezelfde dictionary altijd tot dezelfde string/hash leidt, ook al wijzigt de volgorde van de dictionary.
     # Het vastzetten van de order voor de transaction-dictionaries die je gebruikt in valid_proof() doe je door een OrderedDict te gebruiken ipv een standaard dictionary in add_transaction() en mine_block()
+    # OrderedDict waarborgt dat de keys van de transactions altijd dezelfde order hebben
