@@ -71,7 +71,7 @@ def save_data():
             # Objecten kunnen niet als json worden opgeslagen, en aangezien de blockchain een list van Blocks (oftewel objecten) is, 
             # moet je die eerst converten naar een list aan bijv. dictionaries
             # Maar omdat __dict__ niet ook een list aan objecten BINNEN een object convert naar een dictionary,
-            # gebruik je een nested list comprehension om de transactions binnen een Block ook te converten naar dictionaries
+            # gebruik je een nested list comprehension om de transactions binnen een Block object ook te converten naar dictionaries
             saveable_chain = [block.__dict__ for block in [Block(block_el.index, block_el.previous_hash,[tx.__dict__ for tx in block_el.transactions] , block_el.proof, block_el.timestamp  ) for block_el in blockchain]]   
             
             file.write(json.dumps(saveable_chain))  # json.dumps() zorgt ervoor dat de blockchain-list wordt geconvert naar json-data (een json-string). Want als je een list als een normale string opslaat in een .txt bestand, krijg je die niet meer terug-geconvert naar een list bij het inladen. Dat kan met json-data die je opslaat in een .txt wel. 
