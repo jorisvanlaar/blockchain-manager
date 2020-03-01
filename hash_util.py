@@ -3,7 +3,7 @@ import json         # geimporteerd omdat je mbv json, objecten kunt encoden als 
 
 
 def hash_string_256(string):
-    return hashlib.sha256(string).hexdigest()   # hexdigest() om van de hash een weer een leesbare string te maken anders kan je niet checken of ie voldoet aan de PoW criteria (twee nullen)
+    return hashlib.sha256(string).hexdigest()   # hexdigest() om van de hash die sha256() creeert een leesbare string te maken anders kan je erg geen checks op uitvoeren (zoals bijv. het voldoen aan de PoW criteria van twee nullen)
 
 def hash_block(block):
     """ Hashes a block and returns this hash in the form of a string """    
@@ -13,11 +13,11 @@ def hash_block(block):
     # Het is belangrijk hierbij om een kopie te maken van het block dat je wilt gaan hashen, omdat je het block wilt wijzigen voordat je hem hashed, en je wil het originele block ongewijzigd wilt laten.
     # __dict__ convert namelijk wel de block naar een dictionary, maar die convert niet OOK een list aan objecten (de transactions, oftewel een list aan Transactions) binnen dit object (de block) naar dictionaries. 
     hashable_block = block.__dict__.copy()
-    hashable_block['transactions'] = [tx.to_ordered_dict() for tx in hashable_block['transactions']] # mbv een list comprehension door de transactions van de block gaan en elke transaction converten naar een OrderedDict, zodat je de order van de transactions kunt waarborgen en je die wel kunt dumpen naar json data (wat met een list aan Transaction objecten niet kon)
-    return hash_string_256(json.dumps(hashable_block, sort_keys=True).encode())  # ipv de syntax van de line hierboven, kan het korter door het schrijven van een aparte, custom hash_string_256() function
+    hashable_block['transactions'] = [tx.to_ordered_dict() for tx in hashable_block['transactions']] # mbv een list comprehension door de transactions van het ingegeven block gaan en elke transaction converten naar een OrderedDict, zodat je de order van de transactions kunt waarborgen en je die wel kunt dumpen naar json data (wat met een list aan Transaction objecten niet kon)
+    return hash_string_256(json.dumps(hashable_block, sort_keys=True).encode())  # gebruikmaken van de hash_string_256() method om een hash van het block te returnen
     
 
-    # de json.dumps(hashable_block).encode() encode een block naar een string
+    # de json.dumps(hashable_block).encode() encode een hashable_block naar een string
     # de hashlib.sha256() method is een algoritme die een 64-character hash creeert obv een string, en zorgt ervoor dat dezelfde input altijd tot dezelfde hash leidt (wat nodig is om de hash van het vorige block te kunnen validaten)
     # de hexdigest() method convert de 'bytehash' die wordt gegenereerd door sha256() naar een gewone string
 

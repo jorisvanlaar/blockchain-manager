@@ -6,6 +6,10 @@ class Transaction:
         self.recipient = recipient
         self.amount = amount
     
+
+    def __repr__(self):
+        return f"Sender: {self.sender}, Recipient: {self.recipient}, Amount: {self.amount}"
+    
     
     # Je bouwt een Transaction op met een OrderedDict om ervoor te zorgen dat de order van je transactions altijd vaststaat. 
     # Dit is nodig zodat je dan altijd dezelfde correcte hash genereert voor eenzelfde block in de valid_proof() method
@@ -14,5 +18,8 @@ class Transaction:
     def to_ordered_dict(self):
         """ Returns an OrderedDict object """
         return OrderedDict([('sender', self.sender), ('recipient', self.recipient), ('amount', self.amount)])
+    
+
+    
 
 

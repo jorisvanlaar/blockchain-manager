@@ -8,4 +8,7 @@ class Block:
         self.transactions = transactions
         self.proof = proof
     
+    def __repr__(self):
+        return f"Index: {self.index}, Previous Hash: {self.previous_hash}, Proof: {self.proof}, Timestamp: {self.timestamp}, Transactions: {self.transactions}"
+    
 
