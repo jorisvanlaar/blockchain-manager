@@ -1,8 +1,9 @@
 import hashlib
-from hash_util import hash_string_256, hash_block
+from hash_util import hash_block
 import json
 from block import Block
 from transaction import Transaction
+from verification import Verification
 
 # Initializing global variables
 # The reward miners get for creating a new block
@@ -57,7 +58,6 @@ def load_data():
         open_transactions = []          # Unhandled transactions
     
 
-
 load_data()             # load_data() uitvoeren als je blockchain.py runned
 
 
@@ -79,19 +79,13 @@ def save_data():
         print('Saving failed!')
 
 
-def valid_proof(transactions, last_hash, proof):
-    """ Generates a guess-hash for a new block, and checks whether it fulfills the PoW criteria """
-    guess = (str([tx.to_ordered_dict() for tx in transactions]) + str(last_hash) + str(proof)).encode()  # een lange string maken obv de transactions, last/previous hash en een 'proof' nummer. En mbv list comprehension en de to_ordered_dict() method (van de Transaction class) alle Transaction objecten converten naar een OrderedDict om zo de order te waarborgen van de transactions
-    guess_hash = hash_string_256(guess)                                 # een hash maken van de guess string. # IMPORTANT: This is NOT the same hash as will be stored in the previous_hash. It's a not a block's hash. It's only used for the proof-of-work algorithm. 
-    return guess_hash[0:2] == '00'                                      # checken of de guess_hash voldoet aan een PoW criterium waarbij de eerste twee karakters van de hash een 0 moeten zijn
-
-
 def proof_of_work():
     """Generate a proof of work for the new block that's to be added to the blockchain """
     last_block = blockchain[-1]                                         # Verkrijg het huidige laatste block van de chain,
     last_hash = hash_block(last_block)                                  # en hash die, zodat je de previous_hash/last_hash hebt.      
     proof = 0                                                           # Initialiseer het proof-nummer op 0
-    while not valid_proof(open_transactions, last_hash, proof):         # Met een while-loop checken of valid_proof() op een gegevent moment True returned,
+    verifier = Verification()                                           # Een instance van de Verification class aanmaken, zodat je toegang hebt tot diens methods
+    while not verifier.valid_proof(open_transactions, last_hash, proof):         # Met een while-loop checken of valid_proof() op een gegevent moment True returned,
         proof += 1                                                      # door het proof-nummer steeds met 1 te verhogen
     return proof                                                        # En return het proof-nummer dat er voor heeft gezorgd dat aan de PoW criteria is voldaan. 
                                                                         # Dit nummer ga je namelijk toevoegen aan het nieuwe block (opgebouwd uit de huidige open_transactions) dat aan de chain gaat worden toegevoegd
@@ -135,16 +129,6 @@ def get_last_blockchain_value():
     return blockchain[-1]
 
 
-def verify_transaction(transaction):
-    """ Verifies whether the sender has enough funds to send a transaction """
-    sender_balance = get_balance(transaction.sender)
-    # if sender_balance >= transaction['amount']:
-    #     return True
-    # else:
-    #     return False
-    return sender_balance >= transaction.amount  # Bovenstaande if/else onnodig, dit returned ook een boolean
-
-
 def add_transaction(recipient, sender=owner, amount=1.0):
     """ Store a new transaction in the open transactions 
     
@@ -165,7 +149,8 @@ def add_transaction(recipient, sender=owner, amount=1.0):
     # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is:
     # transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
     transaction = Transaction(sender, recipient, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
-    if verify_transaction(transaction):
+    verifier = Verification()                               # Een instance van de Verification class aanmaken, zodat je toegang hebt tot diens methods
+    if verifier.verify_transaction(transaction, get_balance):
         open_transactions.append(transaction)
         save_data()
         return True
@@ -221,21 +206,6 @@ def print_blockchain_elements():
         print('-' * 20)
 
 
-def verify_chain():
-    """ Compares the stored 'previous_hash' in a block with a recalculation of the hash which you do here """
-    for (index, block) in enumerate(blockchain): # if you wrap a list with the helper function 'enumerate', it will give you back a tuple consisting of the index & value of an element
-                                                 # In this case I immediately unpack the tuple values to the variables 'index' and 'block'
-        if index == 0:                           # skip the genesis block
-            continue
-        if block.previous_hash != hash_block(blockchain[index - 1]):  # Je vergelijkt hier dus of de reeds opgeslagen hash van het voorgaande block ('previous_hash') overeenkomt met de hash die je nu nogmaals laat berekenen/returnen
-            print('Previous hash is invalid')
-            return False
-        if not valid_proof(block.transactions[:-1], block.previous_hash, block.proof):  # mbv slicing het laatste element van de transactions (oftewel de reward_transaction) excluden, omdat je die ook niet had meegenomen bij het berekenen van het PoW nummer in mine_block()
-            print('Proof of Work is invalid')
-            return False
-    return True
-
-
 menu = True
 # A while loop for the user input interface
 # It's a loop that exits once waiting_for_input becomes False or when break is called
@@ -273,7 +243,8 @@ while menu:
     else:
         print('Input was invalid, please pick a value from the list!')
     
-    if not verify_chain():              # if verify_chain() returns False -> print a message
+    verifier = Verification()                       # Een instance van de Verification class aanmaken, zodat je toegang hebt tot diens methods
+    if not verifier.verify_chain(blockchain):       # if verify_chain() returns False -> print a message
         print_blockchain_elements()
         print('Invalid blockchain!')
         break                           # Break out of the loop
