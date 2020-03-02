@@ -74,8 +74,7 @@ class Blockchain:
         last_block = self.chain[-1]                                         # Verkrijg het huidige laatste block van de chain,
         last_hash = hash_block(last_block)                                  # en hash die, zodat je de previous_hash/last_hash hebt.      
         proof = 0                                                           # Initialiseer het proof-nummer op 0
-        verifier = Verification()                                           # Een instance van de Verification class aanmaken, zodat je toegang hebt tot diens methods
-        while not verifier.valid_proof(self.open_transactions, last_hash, proof):         # Met een while-loop checken of valid_proof() op een gegevent moment True returned,
+        while not Verification.valid_proof(self.open_transactions, last_hash, proof):         # Met een while-loop checken of valid_proof() op een gegevent moment True returned,
             proof += 1                                                      # door het proof-nummer steeds met 1 te verhogen
         return proof                                                        # En return het proof-nummer dat er voor heeft gezorgd dat aan de PoW criteria is voldaan. 
                                                                             # Dit nummer ga je namelijk toevoegen aan het nieuwe block (opgebouwd uit de huidige open_transactions) dat aan de chain gaat worden toegevoegd
@@ -140,8 +139,7 @@ class Blockchain:
         # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is:
         # transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
         transaction = Transaction(sender, recipient, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
-        verifier = Verification()                               # Een instance van de Verification class aanmaken, zodat je toegang hebt tot diens methods
-        if verifier.verify_transaction(transaction, self.get_balance):  # Notice het ontbreken van haakjes, omdat je niet de get_balance() called maar puur een reference ernaartoe passed als argument 
+        if Verification.verify_transaction(transaction, self.get_balance):  # Notice het ontbreken van haakjes, omdat je niet de get_balance() called maar puur een reference ernaartoe passed als argument 
             self.open_transactions.append(transaction)
             self.save_data()
             return True

@@ -68,8 +68,7 @@ class Node:
             else:
                 print('Input was invalid, please pick a value from the list!')
             
-            verifier = Verification()                               # Een instance van de Verification class aanmaken, zodat je toegang hebt tot diens methods
-            if not verifier.verify_chain(self.blockchain.chain):    # if verify_chain() returns False -> print a message
+            if not Verification.verify_chain(self.blockchain.chain):    # if verify_chain() returns False -> print a message
                 self.print_blockchain_elements()
                 print('Invalid blockchain!')
                 break                           # Break out of the loop
