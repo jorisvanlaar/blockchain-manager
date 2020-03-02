@@ -25,7 +25,7 @@ class Node:
 
     def print_blockchain_elements(self):
         """ Outputs all blocks of the blockchain """
-        for block in self.blockchain.chain:
+        for block in self.blockchain.get_chain():
             print(f"Block: {block}")
         else:               # Gets executed when the loop is done
             print('-' * 20)
@@ -53,7 +53,7 @@ class Node:
                     print('Added transaction!')
                 else:
                     print('Transaction failed, insufficient funds!')
-                print(f"Open transactions: {self.blockchain.open_transactions}")
+                print(f"Open transactions: {self.blockchain.get_open_transactions()}")
             
             elif user_choice == '2':
                 self.blockchain.mine_block()
@@ -68,7 +68,7 @@ class Node:
             else:
                 print('Input was invalid, please pick a value from the list!')
             
-            if not Verification.verify_chain(self.blockchain.chain):    # if verify_chain() returns False -> print a message
+            if not Verification.verify_chain(self.blockchain.get_chain()):    # if verify_chain() returns False -> print a message
                 self.print_blockchain_elements()
                 print('Invalid blockchain!')
                 break                           # Break out of the loop
