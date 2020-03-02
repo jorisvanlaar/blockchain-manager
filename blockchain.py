@@ -10,11 +10,12 @@ from verification import Verification
 MINING_REWARD = 10  # global constant variable
 
 class Blockchain:
-    def __init__(self):    
+    def __init__(self, hosting_node_id):    
         genesis_block = Block(0, '', [], 100, 0)    # The starting block for the blockchain
         self.chain = [genesis_block]                # Initializing an empty blockchain list with a genesis block, but this will be overwritten when data is loaded in
         self.open_transactions = []                 # Unhandled transactions
         self.load_data()                            # load_data() uitvoeren op het moment dat er een Blockchain object wordt aangemaakt
+        self.hosting_node = hosting_node_id         # id voor de computer waarop de instance van de Blockchain draait
 
 
     def load_data(self):
@@ -79,8 +80,9 @@ class Blockchain:
         return proof                                                        # En return het proof-nummer dat er voor heeft gezorgd dat aan de PoW criteria is voldaan. 
                                                                             # Dit nummer ga je namelijk toevoegen aan het nieuwe block (opgebouwd uit de huidige open_transactions) dat aan de chain gaat worden toegevoegd
 
-    def get_balance(self, participant):
+    def get_balance(self):
         """ Subtracts the total amount a participant has sent from the total amount he has received and returns this balance """
+        participant = self.hosting_node
 
         # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
         # This fetches sent amounts of transactions that were already included in blocks of the blockchain
@@ -146,7 +148,7 @@ class Blockchain:
         return False
 
 
-    def mine_block(self, node): #  The node parameter stands for the computer that is mining the block
+    def mine_block(self): #  The node parameter stands for the computer that is mining the block
         """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
         # Fetch the currently last block of the blockchain
         last_block = self.chain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So I need a genesis block for the blockchain to prevent this.
@@ -164,7 +166,7 @@ class Blockchain:
         # }
         # Ook voor de reward_transaction de order vastzetten (net als gewone transactions in add_transaction()) mbv een OrderedDict 
         # reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
-        reward_transaction = Transaction('MINING', node, MINING_REWARD)    # ipv een OrderedDict ook voor de reward_transaction een Transaction object aanmaken 
+        reward_transaction = Transaction('MINING', self.hosting_node, MINING_REWARD)    # ipv een OrderedDict ook voor de reward_transaction een Transaction object aanmaken 
         
         # Copy transaction instead of manipulating the original open_transactions list
         # This ensures that if for some reason the mining should fail, I don't have the reward transaction stored in the open transactions
@@ -173,4 +175,7 @@ class Blockchain:
         
         block = Block(len(self.chain), hashed_block, copied_open_transactions, proof)
         self.chain.append(block)
+
+        self.open_transactions = []      # reset/leeg de open_transaction na het toevoegen van het nieuwe block aan de blockchain
+        self.save_data()
         return True
