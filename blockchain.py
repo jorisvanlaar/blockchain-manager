@@ -12,22 +12,40 @@ MINING_REWARD = 10  # global constant variable
 class Blockchain:
     def __init__(self, hosting_node_id):    
         genesis_block = Block(0, '', [], 100, 0)    # The starting block for the blockchain
-        self.__chain = [genesis_block]                # Initializing an empty blockchain list with a genesis block, but this will be overwritten when data is loaded in. private gemaakt zodat die niet makkelijk van buiten deze class gewijzigd kan worden
-        self.__open_transactions = []                 # Unhandled transactions, private gemaakt zodat die niet makkelijk van buiten deze class gewijzigd kan worden
+        self.__chain = [genesis_block]              # Initializing an empty blockchain list with a genesis block, but this will be overwritten when data is loaded in. private gemaakt zodat die niet makkelijk van buiten deze class gewijzigd kan worden
+        self.__open_transactions = []               # Unhandled transactions, private gemaakt zodat die niet makkelijk van buiten deze class gewijzigd kan worden
         self.load_data()                            # load_data() uitvoeren op het moment dat er een Blockchain object wordt aangemaakt
         self.hosting_node = hosting_node_id         # id voor de computer waarop de instance van de Blockchain draait
 
-
+    
     # getter maken om het private attribute __chain te kunnen benaderen van buiten de class
-    def get_chain(self):
+    # def get_chain(self):
+    #     return self.__chain[:]  # mbv slicing een kopie returnen, en niet de originele chain die in de Blockchain instance wordt bewaard (voor de zekerheid)
+     
+    # Maar ipv bovenstaande get_chain getter kun je ook een propery aanmaken die als getter fungeert, maar een fijnere syntax geeft
+    @property
+    def chain(self):
         return self.__chain[:]  # mbv slicing een kopie returnen, en niet de originele chain die in de Blockchain instance wordt bewaard (voor de zekerheid)
     
-
-    # getter maken om het private attribute __open_transactions te kunnen benaderen van buiten de class
-    def get_open_transactions(self):
-        return self.__open_transactions[:]  # # mbv slicing een kopie returnen, en niet de originele chain die in de Blockchain instance wordt bewaard (voor de zekerheid)
-
+    # Setter aanmaken voor de private attribute __chain
+    @chain.setter
+    def chain(self, value):
+        self.__chain = value
     
+
+    # # getter maken om het private attribute __open_transactions te kunnen benaderen van buiten de class
+    # def get_open_transactions(self):
+    #     return self.__open_transactions[:]  # mbv slicing een kopie returnen, en niet de originele chain die in de Blockchain instance wordt bewaard (voor de zekerheid)
+
+    @property
+    def open_transactions(self):
+        return self.__open_transactions[:]  # mbv slicing een kopie returnen, en niet de originele chain die in de Blockchain instance wordt bewaard (voor de zekerheid)
+
+    @open_transactions.setter
+    def open_transactions(self, value):
+        self.__open_transactions = value
+
+
     def load_data(self):
         """ Opens the blockchain & open transactions from a file an initializes the blockchain and open transactions """
         try:
@@ -46,7 +64,7 @@ class Blockchain:
                     converted_tx = [Transaction(tx['sender'], tx['recipient'], tx['amount']) for tx in block['transactions']]   # de ingeladen transaction mbv list comprehension converten naar een list aan Transactions, ipv OrderedDicts zoals de line hierboven
                     updated_block = Block(block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                     updated_blockchain.append(updated_block)
-                self.__chain = updated_blockchain
+                self.chain = updated_blockchain
             
             # Ook voor de open_transactions geldt dat die nu niet worden ingeladen als een OrderedDict wat resulteert in een invalid blockchain,
             # dus die moet ook bij het inladen omgezet worden naar een OrderedDict:
