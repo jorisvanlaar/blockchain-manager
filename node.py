@@ -81,6 +81,11 @@ class Node:
 
         print('Done!')
 
-
-node = Node()
-node.listen_for_input()
+# Wanneer je zelf een module/file runned dan wordt diens __name__ door Python als __main__ aangemerkt. 
+# Als een module wordt geimporteerd is __name__ gelijk aan de naam van de module (in dit geval dus 'node')
+# Het aanmaken van een Node object en daar vervolgens de listen_for_input() method op callen (zie hieronder), 
+# mag dus alleen gebeuren wanneer de context of execution is dat je zelf direct de file aan het runnen bent.
+# Handig als je bijvoorbeeld een module importeert, maar wilt voorkomen dat de code die daarin staat direct wordt uitgevoerd.
+if __name__ == '__main__':      
+    node = Node()
+    node.listen_for_input()

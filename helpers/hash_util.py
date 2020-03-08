@@ -3,6 +3,7 @@ import json         # geimporteerd omdat je mbv json, objecten kunt encoden als 
 
 
 def hash_string_256(string):
+    """ Creates a hash for a given string """
     return hashlib.sha256(string).hexdigest()   # hexdigest() om van de hash die sha256() creeert een leesbare string te maken anders kan je erg geen checks op uitvoeren (zoals bijv. het voldoen aan de PoW criteria van twee nullen)
 
 def hash_block(block):
