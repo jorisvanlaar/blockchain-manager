@@ -1,9 +1,9 @@
 import hashlib
-from hash_util import hash_block
 import json
 from block import Block
 from transaction import Transaction
-from verification import Verification
+from helpers.hash_util import hash_block        # Met het toevoegen van __init__.py aan de 'helpers' folder kun je nu dus makkelijk bij de individuele classes die je in deze folder hebt gegroepeerd
+from helpers.verification import Verification
 
 # Initializing global variables
 # The reward miners get for creating a new block
