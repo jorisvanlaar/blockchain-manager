@@ -1,4 +1,4 @@
-from hash_util import hash_string_256, hash_block
+from helpers.hash_util import hash_block, hash_string_256
 
 class Verification:
     # Zowel met staticmethods als classmethods zorg je ervoor dat je niet eerst een instance van een Class moet aanmaken waarop je de methods van de Class kunt callen. 

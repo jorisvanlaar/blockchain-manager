@@ -1,6 +1,6 @@
 from uuid import uuid4                  # Importeren Uniform Unique ID package, en dan specifiek het uuid4 algoritme voor het genereren van een uniek id
 from blockchain import Blockchain
-from verification import Verification
+from helpers.verification import Verification
 
 
 class Node:
