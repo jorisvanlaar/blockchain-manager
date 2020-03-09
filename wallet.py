@@ -1,6 +1,8 @@
 from Crypto.PublicKey import RSA    # de pycryptodom package importeren (die gek genoeg Crypto heet bij het importeren), en daarvan specifiek het RSA algoritme importeren voor het genereren van public/private keys 
 import Crypto.Random                # Random van de pycrypto/Crypto package importeren, zodat je een random nummer kunt genereren
 import binascii                     # impporteren zodat je de public/private keys kunt converten van binary data  naar ascii data (string in dit geval)
+from Crypto.Signature import PKCS1_v1_5 # importeren van het PKCS1_v1_5 algortime voor het voor het genereren van een signature in 'signature_transaction()' 
+from Crypto.Hash import SHA256      # algoritme om een hash te genereren (eigenlijk hetzelfde algoritme als die van hashlib in hash_util)
 
 class Wallet:
     def __init__(self):
@@ -48,3 +50,16 @@ class Wallet:
         # private_key.exportKey(format='DER') -> de key encoden in een binary format,
         # binascii.hexlify(private_key) -> de binary encoded key converten naar een hexadecimal representatie hiervan   
         # .decode('ascii') -> en vervolgens die hexadecimal representatie van de key converten naar ascii karakters (oftewel een string)
+    
+
+    def sign_transaction(self, sender, recipient, amount):
+        """ Returns a signature (string) for a given transaction """
+        signer = PKCS1_v1_5.new(RSA.import_key(binascii.unhexlify(self.private_key)))   # RSA.import_key(self.private_key) -> importeren van de private_key
+                                                                                        # binascii.unhexlify(self.private_key) -> converten van de private_key van een string naar binary data
+                                                                                        # PKCS1_v1_5.new(private_key) -> een variabele aanmaken die het PKCS1_v1_5 algoritme kan gebruiken
+        tx_hash = SHA256.new((str(sender) + str(recipient) + str(amount)).encode('utf8'))                # Hash genereren voor de transaction. De transaction is 1 lange concatenated string die je encode naar binary data, omdat dat vereist is voor de sign() method op de volgende line
+        signature = signer.sign(tx_hash)
+        return binascii.hexlify(signature).decode('ascii')                                              # De signature converten van binary naar een string, en die string returnen (zie ook generate_keys())
+
+
+

@@ -56,7 +56,9 @@ class Node:
                 tx_data = self.get_transaction_values()  
                 recipient, amount = tx_data         # unpacken van de tuple 'tx_data' en diens values in de variabelen 'recipient' en 'amount' stoppen
                 # Add the transaction to the open_transactions list
-                if self.blockchain.add_transaction(recipient, self.wallet.public_key, amount=amount): # kwarg 'amount' zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
+                signature = self.wallet.sign_transaction(self.wallet.public_key, recipient, amount)     # Mbv sign_transaction() een signature (string) gereturned krijgen voor de transaction
+                # if self.blockchain.add_transaction(recipient, self.wallet.public_key, signature, amount=amount):      # kwarg 'amount' zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
+                if self.blockchain.add_transaction(recipient, self.wallet.public_key, signature, amount): 
                     print('Added transaction!')
                 else:
                     print('Transaction failed!')

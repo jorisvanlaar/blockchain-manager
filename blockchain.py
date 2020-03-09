@@ -61,7 +61,7 @@ class Blockchain:
                 updated_blockchain = []
                 for block in blockchain:
                     # converted_tx = [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]  # de ingeladen transactions converten naar een OrderedDict mbv een list comprehension
-                    converted_tx = [Transaction(tx['sender'], tx['recipient'], tx['amount']) for tx in block['transactions']]   # de ingeladen transaction mbv list comprehension converten naar een list aan Transactions, ipv OrderedDicts zoals de line hierboven
+                    converted_tx = [Transaction(tx['sender'], tx['recipient'], tx['signature'], tx['amount']) for tx in block['transactions']]   # de ingeladen transaction mbv list comprehension converten naar een list aan Transactions, ipv OrderedDicts zoals de line hierboven
                     updated_block = Block(block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                     updated_blockchain.append(updated_block)
                 self.chain = updated_blockchain
@@ -72,7 +72,7 @@ class Blockchain:
             updated_transactions = []
             for tx in open_transactions:
                 # updated_transaction = OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
-                updated_transaction = Transaction(tx['sender'], tx['recipient'], tx['amount'])  # De ingeladen open_transactions converten naar Transaction objecten (ipv OrderedDict zoals de line hierboven) en appenden aan de updated_transactions list
+                updated_transaction = Transaction(tx['sender'], tx['recipient'], tx['signature'], tx['amount'])  # De ingeladen open_transactions converten naar Transaction objecten (ipv OrderedDict zoals de line hierboven) en appenden aan de updated_transactions list
                 updated_transactions.append(updated_transaction)
             self.__open_transactions = updated_transactions
         except (IOError, IndexError):
@@ -147,7 +147,7 @@ class Blockchain:
         return self.__chain[-1]
 
 
-    def add_transaction(self, recipient, sender, amount=1.0):
+    def add_transaction(self, recipient, sender, signature, amount=1.0):
         """ Store a new transaction in the open transactions 
         
         Arguments:
@@ -169,7 +169,7 @@ class Blockchain:
         # Dit is nodig zodat je dan altijd dezelfde correcte hash genereert voor eenzelfde block in de valid_proof() method
         # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is:
         # transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
-        transaction = Transaction(sender, recipient, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
+        transaction = Transaction(sender, recipient, signature, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
         if Verification.verify_transaction(transaction, self.get_balance):  # Notice het ontbreken van haakjes, omdat je niet de get_balance() called maar puur een reference ernaartoe passed als argument 
             self.__open_transactions.append(transaction)
             self.save_data()
@@ -198,7 +198,7 @@ class Blockchain:
         # }
         # Ook voor de reward_transaction de order vastzetten (net als gewone transactions in add_transaction()) mbv een OrderedDict 
         # reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
-        reward_transaction = Transaction('MINING', self.hosting_node, MINING_REWARD)    # ipv een OrderedDict ook voor de reward_transaction een Transaction object aanmaken 
+        reward_transaction = Transaction('MINING', self.hosting_node,'', MINING_REWARD)    # ipv een OrderedDict ook voor de reward_transaction een Transaction object aanmaken. Empty string voor de signature, want de mining reward hoeft niet gesigned te worden. 
         
         # Copy transaction instead of manipulating the original open_transactions list
         # This ensures that if for some reason the mining should fail, I don't have the reward transaction stored in the open transactions
