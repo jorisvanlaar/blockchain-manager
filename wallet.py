@@ -1,13 +1,23 @@
 from Crypto.PublicKey import RSA    # de pycryptodom package importeren (die gek genoeg Crypto heet bij het importeren), en daarvan specifiek het RSA algoritme importeren voor het genereren van public/private keys 
 import Crypto.Random                # Random van de pycrypto/Crypto package importeren, zodat je een random nummer kunt genereren
-import binascii                     # impporteren zodat je de public/private keys die kunt converten van binary data  naar ascii data (string in dit geval)
+import binascii                     # impporteren zodat je de public/private keys kunt converten van binary data  naar ascii data (string in dit geval)
 
 class Wallet:
     def __init__(self):
+        self.private_key = None     # None, want je wilt niet bij het aanmaken van een Wallet object aannemen dat een user per definitie keys wilt creeeren, mogelijk wil hij bestaande keys inladen. 
+        self.public_key = None
+    
+    def create_keys(self):
+        """ Creates a private and public key, if the user doesn't already have these """
         private_key, public_key = self.generate_keys()  # de tuple die gereturned wordt door generate_keys() unpacken naar de variabelen 'private_key' en 'public_key'
         self.private_key = private_key
-        self.public_key = public_key
+        self.public_key = public_key 
+    
 
+    def load_keys(self):
+        pass
+
+    
     def generate_keys(self):
         private_key = RSA.generate(1024, Crypto.Random.new().read)  # 1024 staat voor het aantal bits van de keys, hoe hoger des te veiliger
                                                                     # Crypto.Random.new() geeft een random nummer, .read erachter zodat het random nummer ingelezen kan worden door de generate_keys() method 

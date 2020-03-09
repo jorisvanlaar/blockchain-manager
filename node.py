@@ -1,13 +1,14 @@
 from uuid import uuid4                  # Importeren Uniform Unique ID package, en dan specifiek het uuid4 algoritme voor het genereren van een uniek id
 from blockchain import Blockchain
 from helpers.verification import Verification
+from wallet import Wallet
 
 
 class Node:
     def __init__(self):
         # self.id = str(uuid4())                       # het uuid4 algoritme direct laten uitvoeren bij de aanmaak van een Node instance, om deze zijn eigen hosting_node_id mee te geven. Wel wrappen in een str(), omdat een UUID object niet json serializable is, wat dus issues anders geeft met saven/loaden
-        self.id = 'JORIS'                               
-        self.blockchain = Blockchain(self.id)   
+        self.wallet = Wallet()                          # Bij het aanmaken van een Node object, wordt direct een Wallet object aangemaakt, waarbij de keys nog op None staan                    
+        self.blockchain = Blockchain(self.wallet.public_key)   # De public_key doet dienst als id van een node
         
 
     def get_transaction_values(self):
@@ -41,6 +42,8 @@ class Node:
             print('1: Add a new transaction')
             print('2: Mine a new block')
             print('3: Output the blockchain blocks')
+            print('4: Create wallet')
+            print('5 Load wallet')
             print('q: Quit')
 
             user_choice = self.get_user_choice()
@@ -49,7 +52,7 @@ class Node:
                 tx_data = self.get_transaction_values()  
                 recipient, amount = tx_data         # unpacken van de tuple 'tx_data' en diens values in de variabelen 'recipient' en 'amount' stoppen
                 # Add the transaction to the open_transactions list
-                if self.blockchain.add_transaction(recipient, self.id, amount=amount): # kwarg zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
+                if self.blockchain.add_transaction(recipient, self.wallet.public_key, amount=amount): # kwarg 'amount' zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
                     print('Added transaction!')
                 else:
                     print('Transaction failed, insufficient funds!')
@@ -60,6 +63,12 @@ class Node:
             
             elif user_choice == '3':
                 self.print_blockchain_elements()
+            
+            elif user_choice == '4':
+                self.wallet.create_keys()   # Keys genereren die worden opgeslagen in de wallet van deze node
+                
+            elif user_choice == '5':
+                pass 
             
             elif user_choice.upper() == 'Q':
                 # break
@@ -73,7 +82,7 @@ class Node:
                 print('Invalid blockchain!')
                 break                           # Break out of the loop
 
-            print(f"Balance of {self.id}: {self.blockchain.get_balance():.2f}")         # Pas als je de open transactions hebt gemined wordt de nieuwe balance van de node getoond. Note dat je de float limit tot maar 2 decimalen.
+            print(f"Balance of {self.wallet.public_key}: {self.blockchain.get_balance():.2f}")         # Pas als je de open transactions hebt gemined wordt de nieuwe balance van de node getoond. Note dat je de float limit tot maar 2 decimalen.
 
         # gets executed when the loop is done (doesn't work when you break out of the loop)
         else:
