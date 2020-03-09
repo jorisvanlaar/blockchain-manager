@@ -15,7 +15,7 @@ class Blockchain:
         self.__chain = [genesis_block]              # Initializing an empty blockchain list with a genesis block, but this will be overwritten when data is loaded in. private gemaakt zodat die niet makkelijk van buiten deze class gewijzigd kan worden
         self.__open_transactions = []               # Unhandled transactions, private gemaakt zodat die niet makkelijk van buiten deze class gewijzigd kan worden
         self.load_data()                            # load_data() uitvoeren op het moment dat er een Blockchain object wordt aangemaakt
-        self.hosting_node = hosting_node_id         # id voor de computer waarop de instance van de Blockchain draait
+        self.hosting_node = hosting_node_id         # id voor de computer waarop de instance van de Blockchain draait, dit zal de public_key zijn
 
     
     # getter maken om het private attribute __chain te kunnen benaderen van buiten de class
@@ -155,6 +155,9 @@ class Blockchain:
             :recipient: The recipient of the coins.
             :amount: The amount of coins sent with the transaction (default = 1.0)
         """
+        if self.hosting_node == None:   # Voorkomen dat een transactie kan worden toegoevoegd als de public_key van de node None is
+            return False
+
         # transaction = {
         #     'sender': sender, 
         #     'recipient': recipient, 
@@ -176,6 +179,9 @@ class Blockchain:
 
     def mine_block(self): #  The node parameter stands for the computer that is mining the block
         """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
+        if self.hosting_node == None:   # Voorkomen dat een block kan worden gemined als de public_key van de node None is
+            return False
+        
         # Fetch the currently last block of the blockchain
         last_block = self.__chain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So I need a genesis block for the blockchain to prevent this.
         # Hash the last block of the chain (to be able to compare it in the verify_chain() method)

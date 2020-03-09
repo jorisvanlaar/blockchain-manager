@@ -6,9 +6,9 @@ from wallet import Wallet
 
 class Node:
     def __init__(self):
-        # self.id = str(uuid4())                       # het uuid4 algoritme direct laten uitvoeren bij de aanmaak van een Node instance, om deze zijn eigen hosting_node_id mee te geven. Wel wrappen in een str(), omdat een UUID object niet json serializable is, wat dus issues anders geeft met saven/loaden
-        self.wallet = Wallet()                          # Bij het aanmaken van een Node object, wordt direct een Wallet object aangemaakt, waarbij de keys nog op None staan                    
-        self.blockchain = Blockchain(self.wallet.public_key)   # De public_key doet dienst als id van een node
+        # self.id = str(uuid4())    # het uuid4 algoritme direct laten uitvoeren bij de aanmaak van een Node instance, om deze zijn eigen hosting_node_id mee te geven. Wel wrappen in een str(), omdat een UUID object niet json serializable is, wat dus issues anders geeft met saven/loaden
+        self.wallet = Wallet()      # Bij het aanmaken van een Node object, wordt direct een Wallet object aangemaakt, waarbij de keys nog op None staan                    
+        self.blockchain = None      # De blockchain eerst op None initialiseren, omdat je die pas wilt instantieren met een Blockchain object op het moment dat je een public key hebt die niet None is. En dat gebeurt bij menu-optie 4 of 5 
         
 
     def get_transaction_values(self):
@@ -55,17 +55,19 @@ class Node:
                 if self.blockchain.add_transaction(recipient, self.wallet.public_key, amount=amount): # kwarg 'amount' zodat het tweede argument niet voor de 'sender' parameter wordt gebruikt (die gebruikt dan de default 'owner' variabele)
                     print('Added transaction!')
                 else:
-                    print('Transaction failed, insufficient funds!')
+                    print('Transaction failed!')
                 print(f"Open transactions: {self.blockchain.open_transactions}")
             
             elif user_choice == '2':
-                self.blockchain.mine_block()
+                if not self.blockchain.mine_block():
+                    print('Mining failed. Got no wallet?')
             
             elif user_choice == '3':
                 self.print_blockchain_elements()
             
             elif user_choice == '4':
-                self.wallet.create_keys()   # Keys genereren die worden opgeslagen in de wallet van deze node
+                self.wallet.create_keys()                               # Keys genereren die worden opgeslagen in de wallet van deze node,
+                self.blockchain = Blockchain(self.wallet.public_key)    # en vervolgens de blockchain aanmaken met een id die bestaat uit de public key die je zojuist o.a. hebt gegenereerd
                 
             elif user_choice == '5':
                 pass 
