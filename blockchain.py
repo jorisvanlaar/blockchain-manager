@@ -4,6 +4,7 @@ from block import Block
 from transaction import Transaction
 from helpers.hash_util import hash_block        # Met het toevoegen van __init__.py aan de 'helpers' folder kun je nu dus makkelijk bij de individuele classes die je in deze folder hebt gegroepeerd
 from helpers.verification import Verification
+from wallet import Wallet
 
 # Initializing global variables
 # The reward miners get for creating a new block
@@ -15,7 +16,7 @@ class Blockchain:
         self.__chain = [genesis_block]              # Initializing an empty blockchain list with a genesis block, but this will be overwritten when data is loaded in. private gemaakt zodat die niet makkelijk van buiten deze class gewijzigd kan worden
         self.__open_transactions = []               # Unhandled transactions, private gemaakt zodat die niet makkelijk van buiten deze class gewijzigd kan worden
         self.load_data()                            # load_data() uitvoeren op het moment dat er een Blockchain object wordt aangemaakt
-        self.hosting_node = hosting_node_id         # id voor de computer waarop de instance van de Blockchain draait
+        self.hosting_node = hosting_node_id         # id voor de computer waarop de instance van de Blockchain draait, dit zal de public_key zijn
 
     
     # getter maken om het private attribute __chain te kunnen benaderen van buiten de class
@@ -61,7 +62,7 @@ class Blockchain:
                 updated_blockchain = []
                 for block in blockchain:
                     # converted_tx = [OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]  # de ingeladen transactions converten naar een OrderedDict mbv een list comprehension
-                    converted_tx = [Transaction(tx['sender'], tx['recipient'], tx['amount']) for tx in block['transactions']]   # de ingeladen transaction mbv list comprehension converten naar een list aan Transactions, ipv OrderedDicts zoals de line hierboven
+                    converted_tx = [Transaction(tx['sender'], tx['recipient'], tx['signature'], tx['amount']) for tx in block['transactions']]   # de ingeladen transaction mbv list comprehension converten naar een list aan Transactions, ipv OrderedDicts zoals de line hierboven
                     updated_block = Block(block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                     updated_blockchain.append(updated_block)
                 self.chain = updated_blockchain
@@ -72,7 +73,7 @@ class Blockchain:
             updated_transactions = []
             for tx in open_transactions:
                 # updated_transaction = OrderedDict([('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])
-                updated_transaction = Transaction(tx['sender'], tx['recipient'], tx['amount'])  # De ingeladen open_transactions converten naar Transaction objecten (ipv OrderedDict zoals de line hierboven) en appenden aan de updated_transactions list
+                updated_transaction = Transaction(tx['sender'], tx['recipient'], tx['signature'], tx['amount'])  # De ingeladen open_transactions converten naar Transaction objecten (ipv OrderedDict zoals de line hierboven) en appenden aan de updated_transactions list
                 updated_transactions.append(updated_transaction)
             self.__open_transactions = updated_transactions
         except (IOError, IndexError):
@@ -147,7 +148,7 @@ class Blockchain:
         return self.__chain[-1]
 
 
-    def add_transaction(self, recipient, sender, amount=1.0):
+    def add_transaction(self, recipient, sender, signature, amount=1.0):
         """ Store a new transaction in the open transactions 
         
         Arguments:
@@ -155,6 +156,9 @@ class Blockchain:
             :recipient: The recipient of the coins.
             :amount: The amount of coins sent with the transaction (default = 1.0)
         """
+        if self.hosting_node == None:   # Voorkomen dat een transactie kan worden toegoevoegd als de public_key van de node None is
+            return False
+
         # transaction = {
         #     'sender': sender, 
         #     'recipient': recipient, 
@@ -166,8 +170,10 @@ class Blockchain:
         # Dit is nodig zodat je dan altijd dezelfde correcte hash genereert voor eenzelfde block in de valid_proof() method
         # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is:
         # transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
-        transaction = Transaction(sender, recipient, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
-        if Verification.verify_transaction(transaction, self.get_balance):  # Notice het ontbreken van haakjes, omdat je niet de get_balance() called maar puur een reference ernaartoe passed als argument 
+        transaction = Transaction(sender, recipient, signature, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
+
+        # Verifieren dat de sender voldoende balance en een valide signature heeft voor de transactie
+        if Verification.verify_transaction(transaction, self.get_balance):  # Notice het ontbreken van haakjes, omdat je niet de get_balance() called maar puur een reference ernaartoe passed als argument, zodat die method gebruikt kan worden in verification.py 
             self.__open_transactions.append(transaction)
             self.save_data()
             return True
@@ -176,6 +182,9 @@ class Blockchain:
 
     def mine_block(self): #  The node parameter stands for the computer that is mining the block
         """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
+        if self.hosting_node == None:   # Voorkomen dat een block kan worden gemined als de public_key van de node None is
+            return False
+        
         # Fetch the currently last block of the blockchain
         last_block = self.__chain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So I need a genesis block for the blockchain to prevent this.
         # Hash the last block of the chain (to be able to compare it in the verify_chain() method)
@@ -192,12 +201,17 @@ class Blockchain:
         # }
         # Ook voor de reward_transaction de order vastzetten (net als gewone transactions in add_transaction()) mbv een OrderedDict 
         # reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
-        reward_transaction = Transaction('MINING', self.hosting_node, MINING_REWARD)    # ipv een OrderedDict ook voor de reward_transaction een Transaction object aanmaken 
+        reward_transaction = Transaction('MINING', self.hosting_node,'', MINING_REWARD)    # ipv een OrderedDict ook voor de reward_transaction een Transaction object aanmaken. Empty string voor de signature, want de mining reward hoeft niet gesigned te worden. 
         
         # Copy transaction instead of manipulating the original open_transactions list
         # This ensures that if for some reason the mining should fail, I don't have the reward transaction stored in the open transactions
-        copied_open_transactions = self.__open_transactions[:]     # de open_transactons list kopieren dmv slicen, 
-        copied_open_transactions.append(reward_transaction) # zodat je voorkomt dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
+        copied_open_transactions = self.__open_transactions[:]     # de open_transactons list kopieren dmv slicen.
+        
+        for tx in copied_open_transactions:         # Door elke transactie van de open_transactions gaan,
+            if not Wallet.verify_transaction(tx):   # en de signature voor elke transaction verifieren.
+                return False                        # Als de signature ergens invalid is voor een transaction, return dan False (en wordt dus niet het block gemined)
+        
+        copied_open_transactions.append(reward_transaction) # De reward_transaction toevoegen aan de gekopierde open_transactions. Hiermee voorkom je dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
         
         block = Block(len(self.__chain), hashed_block, copied_open_transactions, proof)
         self.__chain.append(block)

@@ -1,4 +1,5 @@
 from helpers.hash_util import hash_block, hash_string_256
+from wallet import Wallet 
 
 class Verification:
     # Zowel met staticmethods als classmethods zorg je ervoor dat je niet eerst een instance van een Class moet aanmaken waarop je de methods van de Class kunt callen. 
@@ -31,12 +32,28 @@ class Verification:
         return True
     
 
+    # @staticmethod
+    # def verify_transaction(transaction, get_balance, check_funds=True):     # per default zet je check_funds op True, zodat de if-statement hieronder altijd wordt uitgevoerd, behalve als je ergens in je code handmatig check_funds op False set.
+    #     """ Verifies whether the sender has enough funds and a valid signature for a given transaction """
+    #     if check_funds:                     
+    #         sender_balance = get_balance()
+    #         # if sender_balance >= transaction['amount']:
+    #         #     return True
+    #         # else:
+    #         #     return False
+    #         return sender_balance >= transaction.amount and Wallet.verify_transaction(transaction)  # Bovenstaande if/else onnodig, dit returned ook een boolean. Dus als check_funds True is verifier dan zowel de funds als de signature.
+    #     else:                                               
+    #         return Wallet.verify_transaction(transaction)                                           # Als check_funds False is, verifieer dan alleen de signature van de transaction.
+    #                                                                                                 # Chille is dat omdat verify_transaction() in wallet.py een static method is, hoef je niet eerst een Wallet instance aan te maken om verify_transaction() te callen
+
     @staticmethod
-    def verify_transaction(transaction, get_balance):
-        """ Verifies whether the sender has enough funds to send a transaction """
+    def verify_transaction(transaction, get_balance):    
+        """ Verifies whether the sender has enough funds and a valid signature for a given transaction """                     
         sender_balance = get_balance()
         # if sender_balance >= transaction['amount']:
         #     return True
         # else:
         #     return False
-        return sender_balance >= transaction.amount  # Bovenstaande if/else onnodig, dit returned ook een boolean
+        return sender_balance >= transaction.amount and Wallet.verify_transaction(transaction)  # Bovenstaande if/else onnodig, dit returned ook een boolean. 
+                                                                                                # Chille is dat omdat verify_transaction() in wallet.py een static method is, hoef je niet eerst een Wallet instance aan te maken om verify_transaction() te callen
+
