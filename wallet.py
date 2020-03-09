@@ -1,7 +1,8 @@
 from Crypto.PublicKey import RSA    # de pycryptodom package importeren (die gek genoeg Crypto heet bij het importeren), en daarvan specifiek het RSA algoritme importeren voor het genereren van public/private keys 
 import Crypto.Random                # Random van de pycrypto/Crypto package importeren, zodat je een random nummer kunt genereren
 import binascii                     # impporteren zodat je de public/private keys kunt converten van binary data  naar ascii data (string in dit geval)
-from Crypto.Signature import PKCS1_v1_5 # importeren van het PKCS1_v1_5 algortime voor het voor het genereren van een signature in 'signature_transaction()' 
+#from Crypto.Signature import PKCS1_v1_5 
+from Crypto.Signature import pkcs1_15   # importeren van het PKCS1_v1_5 algortime voor het voor het genereren van een signature in 'signature_transaction()' 
 from Crypto.Hash import SHA256      # algoritme om een hash te genereren (eigenlijk hetzelfde algoritme als die van hashlib in hash_util)
 
 class Wallet:
@@ -54,12 +55,37 @@ class Wallet:
 
     def sign_transaction(self, sender, recipient, amount):
         """ Returns a signature (string) for a given transaction """
-        signer = PKCS1_v1_5.new(RSA.import_key(binascii.unhexlify(self.private_key)))   # RSA.import_key(self.private_key) -> importeren van de private_key
+        signer = pkcs1_15.new(RSA.importKey(binascii.unhexlify(self.private_key)))   # RSA.importKey(self.private_key) -> importeren van de private_key
                                                                                         # binascii.unhexlify(self.private_key) -> converten van de private_key van een string naar binary data
                                                                                         # PKCS1_v1_5.new(private_key) -> een variabele aanmaken die het PKCS1_v1_5 algoritme kan gebruiken
         tx_hash = SHA256.new((str(sender) + str(recipient) + str(amount)).encode('utf8'))                # Hash genereren voor de transaction. De transaction is 1 lange concatenated string die je encode naar binary data, omdat dat vereist is voor de sign() method op de volgende line
-        signature = signer.sign(tx_hash)
+        signature = signer.sign(tx_hash)                                                                # De transaction (hash) signen mbv de sign() method
         return binascii.hexlify(signature).decode('ascii')                                              # De signature converten van binary naar een string, en die string returnen (zie ook generate_keys())
+    
+
+    @staticmethod                                                           # Static method omdat deze method alleen maar een transaction vereist om te werken, en nooit de class/instance en diens attributes accessed (nergens wordt "self.attribuut" aangeroepen)
+    def verify_transaction(transaction):                                    # Geen self parameter nodig, want static method. Voordeel is dat in blockchain.py>add_transaction() nu niet eerst een Wallet instance nodig is om de verify_transaction() method te callen
+        """ Checks whether a signature for a given transaction is valid """
+        try:
+            if transaction.sender == 'MINING':  # Een mining reward transaction hoeft niet geverified te worden,
+                return True                     # want die hebben geen signature. Dus gewoon True returnen, mining reward transactions zijn dus altijd valid
+            
+            public_key = RSA.importKey(binascii.unhexlify(transaction.sender))  # transaction.sender converten naar binary data en importeren als public_key
+            verifier = pkcs1_15.new(public_key)                                 # configureren van het PKCS1_v1_5 algoritme met de public_key. Via deze verifier heb je vervolgens toegang tot de verify() method van het PKCS!_v1_5 algoritme
+            tx_hash = SHA256.new((str(transaction.sender) + str(transaction.recipient) + str(transaction.amount)).encode('utf8'))     # Hash genereren voor de transaction. De transaction is 1 lange concatenated string die je encode naar binary data, omdat dat vereist is voor de verify() method hieronder
+            signature = binascii.unhexlify(transaction.signature)               # de signature (string) van de transaction converten naar binary data
+
+            verification = print(verifier.verify(tx_hash, signature))           # Verifieren mbv de verify() method of de signature voor de transaction (tx_hash) valide is
+            if verification == None:                                            # Als verify() None teruggeeft, 
+                return True                                                     # dan is de signature valid.
+        except ValueError:                                                      # Als verify() een ValueError raised,
+            return False                                                        # dan is de signature invalid.
+        
+
+
+
+
+
 
 
 

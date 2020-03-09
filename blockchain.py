@@ -4,6 +4,7 @@ from block import Block
 from transaction import Transaction
 from helpers.hash_util import hash_block        # Met het toevoegen van __init__.py aan de 'helpers' folder kun je nu dus makkelijk bij de individuele classes die je in deze folder hebt gegroepeerd
 from helpers.verification import Verification
+from wallet import Wallet
 
 # Initializing global variables
 # The reward miners get for creating a new block
@@ -170,6 +171,12 @@ class Blockchain:
         # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is:
         # transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
         transaction = Transaction(sender, recipient, signature, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
+        
+        # Verifieren dat de signature van de transaction valide is 
+        if not Wallet.verify_transaction(transaction):                  # Chille is dat omdat verify_transaction() in wallet.py een static method is, hoef je niet eerst een Wallet instance aan te maken om verify_transaction() te callen
+            return False
+
+        # Verifieren dat de sender voldoende balance heeft voor versturen van de transactie
         if Verification.verify_transaction(transaction, self.get_balance):  # Notice het ontbreken van haakjes, omdat je niet de get_balance() called maar puur een reference ernaartoe passed als argument 
             self.__open_transactions.append(transaction)
             self.save_data()
@@ -206,6 +213,11 @@ class Blockchain:
         copied_open_transactions.append(reward_transaction) # zodat je voorkomt dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
         
         block = Block(len(self.__chain), hashed_block, copied_open_transactions, proof)
+
+        for tx in block.transactions:               # Door elke transactie van de block gaan,
+            if not Wallet.verify_transaction(tx):   # en de signature voor elke transaction verifieren.
+                return False                        # Als de signature ergens invalid is voor een transaction, return dan False (en wordt dus niet het block gemined)
+
         self.__chain.append(block)
 
         self.__open_transactions = []      # reset/leeg de open_transaction na het toevoegen van het nieuwe block aan de blockchain
