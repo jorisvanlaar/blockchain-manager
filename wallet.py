@@ -7,15 +7,35 @@ class Wallet:
         self.private_key = None     # None, want je wilt niet bij het aanmaken van een Wallet object aannemen dat een user per definitie keys wilt creeeren, mogelijk wil hij bestaande keys inladen. 
         self.public_key = None
     
+
     def create_keys(self):
-        """ Creates a private and public key, if the user doesn't already have these """
+        """ Creates a private and public key """
         private_key, public_key = self.generate_keys()  # de tuple die gereturned wordt door generate_keys() unpacken naar de variabelen 'private_key' en 'public_key'
         self.private_key = private_key
         self.public_key = public_key 
+        
     
+    def save_keys(self):
+        if self.public_key != None and self.private_key != None:
+            try:
+                with open('wallet.txt', 'w') as file:
+                    file.write(self.public_key)
+                    file.write('\n')
+                    file.write(self.private_key)
+            except(IOError, IndexError):
+                print('Saving wallet failed')
+        
 
     def load_keys(self):
-        pass
+        try:
+            with open('wallet.txt', 'r') as file:
+                keys = file.readlines()             # readlines() returned een list aan strings
+                public_key = keys[0][:-1]           # slicing om het laatste karakter van de eerste line in de file te excluded, want dat is de '\n'
+                private_key = keys[1]
+                self.public_key = public_key
+                self.private_key = private_key
+        except(IOError, IndexError):
+            print('Loading wallet failed')
 
     
     def generate_keys(self):
