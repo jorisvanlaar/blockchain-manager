@@ -171,13 +171,9 @@ class Blockchain:
         # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is:
         # transaction = OrderedDict([('sender', sender), ('recipient', recipient), ('amount', amount)])
         transaction = Transaction(sender, recipient, signature, amount)    # niet een OrderedDict (zoals line hierboven), maar een Transaction object aanmaken
-        
-        # Verifieren dat de signature van de transaction valide is 
-        if not Wallet.verify_transaction(transaction):                  # Chille is dat omdat verify_transaction() in wallet.py een static method is, hoef je niet eerst een Wallet instance aan te maken om verify_transaction() te callen
-            return False
 
-        # Verifieren dat de sender voldoende balance heeft voor versturen van de transactie
-        if Verification.verify_transaction(transaction, self.get_balance):  # Notice het ontbreken van haakjes, omdat je niet de get_balance() called maar puur een reference ernaartoe passed als argument 
+        # Verifieren dat de sender voldoende balance en een valide signature heeft voor de transactie
+        if Verification.verify_transaction(transaction, self.get_balance):  # Notice het ontbreken van haakjes, omdat je niet de get_balance() called maar puur een reference ernaartoe passed als argument, zodat die method gebruikt kan worden in verification.py 
             self.__open_transactions.append(transaction)
             self.save_data()
             return True
@@ -209,15 +205,15 @@ class Blockchain:
         
         # Copy transaction instead of manipulating the original open_transactions list
         # This ensures that if for some reason the mining should fail, I don't have the reward transaction stored in the open transactions
-        copied_open_transactions = self.__open_transactions[:]     # de open_transactons list kopieren dmv slicen, 
-        copied_open_transactions.append(reward_transaction) # zodat je voorkomt dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
+        copied_open_transactions = self.__open_transactions[:]     # de open_transactons list kopieren dmv slicen.
         
-        block = Block(len(self.__chain), hashed_block, copied_open_transactions, proof)
-
-        for tx in block.transactions:               # Door elke transactie van de block gaan,
+        for tx in copied_open_transactions:         # Door elke transactie van de open_transactions gaan,
             if not Wallet.verify_transaction(tx):   # en de signature voor elke transaction verifieren.
                 return False                        # Als de signature ergens invalid is voor een transaction, return dan False (en wordt dus niet het block gemined)
-
+        
+        copied_open_transactions.append(reward_transaction) # De reward_transaction toevoegen aan de gekopierde open_transactions. Hiermee voorkom je dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
+        
+        block = Block(len(self.__chain), hashed_block, copied_open_transactions, proof)
         self.__chain.append(block)
 
         self.__open_transactions = []      # reset/leeg de open_transaction na het toevoegen van het nieuwe block aan de blockchain

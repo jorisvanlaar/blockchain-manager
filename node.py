@@ -70,7 +70,7 @@ class Node:
             
             elif user_choice == '3':
                 self.print_blockchain_elements()
-            
+                   
             elif user_choice == '4':
                 self.wallet.create_keys()                               # Nieuwe keys voor De bestaande keys (die bij initialisatie van de node zijn aangemaakt) overschrijven met nieuwe keys,
                 self.blockchain = Blockchain(self.wallet.public_key)    # en vervolgens de blockchain aanmaken met een id die bestaat uit de public key die je zojuist o.a. hebt gegenereerd

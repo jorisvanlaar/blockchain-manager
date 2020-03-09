@@ -67,9 +67,6 @@ class Wallet:
     def verify_transaction(transaction):                                    # Geen self parameter nodig, want static method. Voordeel is dat in blockchain.py>add_transaction() nu niet eerst een Wallet instance nodig is om de verify_transaction() method te callen
         """ Checks whether a signature for a given transaction is valid """
         try:
-            if transaction.sender == 'MINING':  # Een mining reward transaction hoeft niet geverified te worden,
-                return True                     # want die hebben geen signature. Dus gewoon True returnen, mining reward transactions zijn dus altijd valid
-            
             public_key = RSA.importKey(binascii.unhexlify(transaction.sender))  # transaction.sender converten naar binary data en importeren als public_key
             verifier = pkcs1_15.new(public_key)                                 # configureren van het PKCS1_v1_5 algoritme met de public_key. Via deze verifier heb je vervolgens toegang tot de verify() method van het PKCS!_v1_5 algoritme
             tx_hash = SHA256.new((str(transaction.sender) + str(transaction.recipient) + str(transaction.amount)).encode('utf8'))     # Hash genereren voor de transaction. De transaction is 1 lange concatenated string die je encode naar binary data, omdat dat vereist is voor de verify() method hieronder
