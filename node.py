@@ -22,17 +22,36 @@ def get_ui():
     return 'This works'
 
 
+# Aanmaken POST request voor het minen van een block
+@app.route('/mine', methods=['POST'])
+def mine():
+    block = blockchain.mine_block() # De block die wordt toegevoegd aan de blockchain, wordt gereturned door mine_block(). Dit block opslaan in de variabele 'block', maar dit block en diens transactions moet je converten naar dictionaries, omdat je die anders niet naar JSON data kunt converten, wat je nodig hebt voor het versturen van een response.
+
+    if block != None:               # Als het gereturnde block niet None is, 
+        dict_block = block.__dict__.copy()                                              # Kopie van de block maken en die converten naar een dictionary, 
+        dict_block['transactions'] = [tx.__dict__ for tx in dict_block['transactions']] # en ook mbv een list comprehension alle transaction in het block converten naar dictionaries.
+        
+        response = {                # return dan deze response (dictionary)
+            'message': 'Block added successfully',
+            'block': dict_block
+        }
+        return jsonify(response), 201                       # De response van de server op de request van de client/webapp als het minnen succeed is dus een response-dictionary (geconvert naar JSON) met daarin het block dat is toegevoegd aan de blockchain, en een HTTP statuscode van 201 ('Created', The request has been fulfilled, resulting in the creation of a new resource.)
+    else:                           # Op het moment dat de mine_block() None returned en dus is gefailed (omdat bijv. de hosting_node/public_key van de blockchain None is),
+        response = {                # de response-variabele storen in een dictionary, zodat je een wat complexere response kan aamaken, die wat meer duidelijkheid over het failen bevat.
+            'message': 'Adding a block failed',
+            'wallet_set_up': wallet.public_key != None,     # dit is dus True als de blockchain een public_key heeft
+        }
+        return jsonify(response), 500                       # De response van de server op de request van de client/webapp als het minnen failed is dus een response-dictionary (geconvert naar JSON) en een HTTP statuscode van 500 ('Internal Server Error', oftewel een generic error message)
+
+
+
 # Aanmaken van een route/endpoint die de huidige blockchain returned
 # Omdat path '/chain' is, return je dus de current blockchain als je navigeert naar 'localhost:5000/chain' in de browser.
-# return (dus eigenlijk de response van de server) in Flask vereist een tuple die bestaat uit:
-# 1. De data van de response (in dit geval dus de chain in de vorm van JSON data)
-# 2. De HTTP status code (in dit geval 200, wat staat voor 'OK' -> Standard response for successful HTTP requests)
-
-# De chain is opgebouwd uit Blocks. Een object (in dit geval een Block) is nooit te converten naar json data,
-# daarom eerst het Block object converten naar een dictionary, want die is wel als json op te slaan.
 @app.route('/chain', methods=['GET'])
 def get_chain():
     chain = blockchain.chain
+    # De chain is opgebouwd uit Blocks. Een object (in dit geval een Block) is nooit te converten naar json data,
+    # daarom eerst het Block object converten naar een dictionary, want die is wel als json op te slaan.
     dict_chain = [block.__dict__.copy() for block in chain] # Mbv list comprehension door elk block van de chain gaan en die converten naar een dictionary, want die kun je wel met jsonify() converten naar JSON data.
                                                             # Is hierbij van belang dat je van elk block een copy maakt voordat je hem convert naar een dictionary, om ongewenste bijkomendheden te voorkomen wanneer je een block manipuleert. Die manipulatie doe je dan liever niet op het origineel.
     
@@ -42,6 +61,9 @@ def get_chain():
     for dict_block in dict_chain:
         dict_block['transactions'] = [tx.__dict__ for tx in dict_block['transactions']] # mbv list comprehension de transactions in elk block converten naar dictionaries
 
+    # return (dus eigenlijk de response van de server) in Flask vereist een tuple die bestaat uit:
+    # 1. De data van de response (in dit geval dus de chain in de vorm van JSON data)
+    # 2. De HTTP status code (in dit geval 200, wat staat voor 'OK' -> Standard response for successful HTTP requests)
     return jsonify(dict_chain), 200       # jsonify(chain) -> converten van de chain naar JSON-data, returnen van de 200 HTTP statuscode (OK)
 
 
