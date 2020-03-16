@@ -1,4 +1,7 @@
-from flask import Flask, jsonify     # Flask importeren, zodat je een Flask applicatie kunt opzetten die dienstdoet als (web) server die kan luisteren naar inkomende HTTP requests van een client/webapp. jsonify zodat je data kunt converten naar JSON en terugsturen wanneer dat wordt gerequest
+# Flask importeren, zodat je een Flask applicatie kunt opzetten die dienstdoet als (web) server die kan luisteren naar inkomende HTTP requests van een client/webapp. 
+# jsonify importeren, zodat je data kunt converten naar JSON en die JSON data vervolgens als response op de request terugsturen
+# request importeren, zodat deze node server data kan extracten van een binnenkomende request. In dit geval willen we dat kunnen, zodat wanneer er een transaction wordt aangemaakt in de '/transaction' route, we de recipient en amount kunnen extracten uit de binnenkomende request
+from flask import Flask, jsonify, request     
 from flask_cors import CORS # CORS importeren zodat je de setup van de Flask app zodanig kan aanpassen dat je wel in de toekomst connecties van andere nodes met deze server kunt toestaan (dat mag standaard namelijk niet)
 from wallet import Wallet
 from blockchain import Blockchain
@@ -80,6 +83,58 @@ def get_balance():
 @app.route('/', methods=['GET'])
 def get_ui():
     return 'This works'
+
+
+# Een route voor het toevoegen van een nieuwe transaction (aan de open_transactions list, die dan na het minen wordt samengevoegd in een block die aan de blockchain wordt toegevoegd)
+@app.route('/transaction', methods=['POST'])
+def add_transaction():
+    if wallet.public_key == None:               # Eerst checken of je een wallet hebt, voordat je uberhaupt een transaction gaat toevoegen in de code eronder
+        response = {
+            'message': 'No wallet set up.'
+        }
+        return jsonify(response), 400   # Als dus deze error response wordt gereturned wordt de code hieronder niet eens uitgevoerd.
+    
+    tx_data = request.get_json()      # Doordat je request hebt geimporteerd, heb je nu toegang tot de get_json() method. Deze method kan JSON-data extracten uit een binnenkomende request (die de user/client dus stuurt naar de server).
+                                        # In dit geval sla je de data die je extract op in de variabele 'tx_data', die automatisch een dictionary wordt.
+    if not tx_data:                   # Checken of er uberhaupt data door de client wordt meegestuurd,
+        response = {
+            'message': 'No data found.' # Maak dan een respons aan met deze message,
+        }
+        return jsonify(response), 400   # en convert deze respons naar JSON, en geef een HTTP status code mee van 400 ('Bad Request', The server cannot or will not process the request due to an apparent client error )
+    
+    required_data = ['recipient', 'amount']   # Voor de nieuw toe te voegen transaction is het vereist dat we van de client data binnenkrijgen tav de recipient en amount van de transaction.
+    if not all(data in tx_data for data in required_data): # Met een list comprehension checken of de 'recipient' en 'amount' data BEIDEN/ALLEMAAL voorkomen in de ge-extracte tx_data
+        response = {
+            'message': 'Required data is missing.'
+        }
+        return jsonify(response), 400
+    
+    recipient = tx_data['recipient']
+    amount = tx_data['amount']
+    signature = wallet.sign_transaction(wallet.public_key, recipient, amount)   # sender is natuurlijk de public_key van de wallet, die doet dienst als id namelijk
+
+    success = blockchain.add_transaction(recipient, wallet.public_key, signature, amount) # Toevoegen van de nieuwe transactie aan de open_transactions
+    if success:
+        response = {
+            'message': 'Successfully added transaction.',
+            'transaction': {                                # De respons o.a. laten bestaan uit een zelf-aangemaakte dictionary met daarin de details van de transaction.
+                'sender': wallet.public_key,
+                'recipient': recipient,
+                'amount': amount,
+                'signature': signature
+            },
+            'funds': blockchain.get_balance()
+        }
+        return jsonify(response), 201
+    else:
+        response = {
+            'message': 'Creating a transaction failed.'
+        }
+        return jsonify(response), 500
+
+
+    
+
 
 
 # Aanmaken POST request voor het minen van een block
