@@ -10,7 +10,7 @@ CORS(app)                                   # De Flask app/server wrappen in het
 
 
 # De wallet is wel aangemaakt, maar diens keys zijn per default nog None, dat moet gefixed worden met deze function.
-# Deze functie maakt keys aan, en slaat die op in een file op de server.
+# Deze route maakt keys aan, en slaat die op in een .txt-file op de server.
 @app.route('/wallet', methods=['POST'])
 def create_keys():
     wallet.create_keys()        # Genereren van de keys voor de wallet
@@ -29,9 +29,23 @@ def create_keys():
         return jsonify(response), 500   # Convert de respons naar JSON data met een HTTP statuscode van 500 ('Internal Server Error', oftewel een generic error message)
             
 
-
+# Route voor het inladen van een wallet
+# Komt erg overeen met de route hierboven voor het saven van de wallet
+@app.route('/wallet', methods=['GET']) 
 def load_keys():
-    pass
+    if wallet.load_keys():
+        response = {
+            'public_key': wallet.public_key,
+            'private_key': wallet.private_key
+        }
+        global blockchain
+        blockchain = Blockchain(wallet.public_key)
+        return jsonify(response), 201
+    else:
+        response = {
+            'message': 'Loading the keys failed.'
+        }
+        return jsonify(response), 500
 
 
 # In Flask maak je endpoints aan mbv de "route" decorator die je toevoegt aan een function. Hiermee registreer je een nieuwe route binnen je Flask app.
