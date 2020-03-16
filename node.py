@@ -133,10 +133,6 @@ def add_transaction():
         return jsonify(response), 500
 
 
-    
-
-
-
 # Aanmaken POST request voor het minen van een block
 @app.route('/mine', methods=['POST'])
 def mine():
@@ -160,7 +156,15 @@ def mine():
         return jsonify(response), 500                       # De response van de server op de request van de client/webapp als het minnen failed is dus een response-dictionary (geconvert naar JSON) en een HTTP statuscode van 500 ('Internal Server Error', oftewel een generic error message)
 
 
-# Aanmaken van een route/endpoint die de huidige blockchain returned
+# Route die als response de open_transactions returned naar de client
+@app.route('/transactions', methods=['GET'])
+def get_open_transactions():
+    open_transactions = blockchain.open_transactions                    # check de syntax voor gebruik van deze property!
+    dict_open_transactions = [tx.__dict__ for tx in open_transactions]   # open_transactions is een list, maar die wil je converten naar een dictionary mbv een list comprehension, omdat je van een dictionary JSON data kunt maken. En dat is natuulijk het datatype wat je gebruikt in al je responses.
+    return jsonify(dict_open_transactions), 200
+
+
+# Aanmaken van een route/endpoint die de huidige blockchain als response naar de client returned
 # Omdat path '/chain' is, return je dus de current blockchain als je navigeert naar 'localhost:5000/chain' in de browser.
 @app.route('/chain', methods=['GET'])
 def get_chain():
