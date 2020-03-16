@@ -110,6 +110,10 @@ class Blockchain:
 
     def get_balance(self):
         """ Subtracts the total amount a participant has sent from the total amount he has received and returns this balance """
+        
+        if self.hosting_node == None:   # Check whether the public_key is None,
+            return None                 # en als dat het geval is return None. Is dat niet het geval wordt er automatisch doorgegaan met de code hieronder.
+        
         participant = self.hosting_node
 
         # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
@@ -183,7 +187,7 @@ class Blockchain:
     def mine_block(self): #  The node parameter stands for the computer that is mining the block
         """ Take all the open transactions and add them to a new block. This block gets added to the blockchain. """
         if self.hosting_node == None:   # Voorkomen dat een block kan worden gemined als de public_key van de node None is
-            return False
+            return None                 # In dat geval returned deze method dan None
         
         # Fetch the currently last block of the blockchain
         last_block = self.__chain[-1] # This would throw an error for the very first block, since the blockchain is then empty. So I need a genesis block for the blockchain to prevent this.
@@ -209,7 +213,7 @@ class Blockchain:
         
         for tx in copied_open_transactions:         # Door elke transactie van de open_transactions gaan,
             if not Wallet.verify_transaction(tx):   # en de signature voor elke transaction verifieren.
-                return False                        # Als de signature ergens invalid is voor een transaction, return dan False (en wordt dus niet het block gemined)
+                return None                        # Als de signature ergens invalid is voor een transaction, return dan None (en wordt dus niet het block gemined)
         
         copied_open_transactions.append(reward_transaction) # De reward_transaction toevoegen aan de gekopierde open_transactions. Hiermee voorkom je dat een mislukte transactie toch een reward oplevert voor de miner in de officiele open_transactions list
         
@@ -218,4 +222,4 @@ class Blockchain:
 
         self.__open_transactions = []      # reset/leeg de open_transaction na het toevoegen van het nieuwe block aan de blockchain
         self.save_data()
-        return True
+        return block                        # return het block dat is toegevoegd aan de blockchain
