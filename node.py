@@ -15,12 +15,13 @@ CORS(app)                                   # De Flask app/server wrappen in het
 def create_keys():
     wallet.create_keys()        # Genereren van de keys voor de wallet
     if wallet.save_keys():      # En als het saven van de keys succesfull is (True wordt gereturned en de keys zijn opgeslagen in een 'wallet.txt' file),
-        response = {            # Stuur dan als server deze respons terug, waarmee je de data terugstuurt van de keys.
-            'public_key': wallet.public_key,
-            'private_key': wallet.private_key
-        }
         global blockchain                           # Vertel de line hieronder dat de global 'blockchain' variabele moet worden gebruikt
         blockchain = Blockchain(wallet.public_key)  # Re-initialiseren van de blockchain, omdat die in eerste instantie None keys heeft, maar nu je de keys hebt gegenereerd wil je opnieuw de blockchain aanmaken met wel een public_key die content heeft.
+        response = {            # Stuur dan als server deze respons terug, waarmee je de data terugstuurt van de keys en de funds.
+            'public_key': wallet.public_key,
+            'private_key': wallet.private_key,
+            'funds': blockchain.get_balance()
+        }
         return jsonify(response), 201   # Convert de respons naar JSON data met een HTTP statuscode van 201 ('Created', The request has been fulfilled, resulting in the creation of a new resource.)
     else:                       # Maar maak deze respons aan als het saven van de keys mislukt.
         response = {
@@ -34,18 +35,38 @@ def create_keys():
 @app.route('/wallet', methods=['GET']) 
 def load_keys():
     if wallet.load_keys():
-        response = {
-            'public_key': wallet.public_key,
-            'private_key': wallet.private_key
-        }
         global blockchain
         blockchain = Blockchain(wallet.public_key)
+        response = {
+            'public_key': wallet.public_key,
+            'private_key': wallet.private_key,
+            'funds': blockchain.get_balance()
+        }
         return jsonify(response), 201
     else:
         response = {
             'message': 'Loading the keys failed.'
         }
         return jsonify(response), 500
+
+
+# Route voor het weergeven van de funds (aantal coins) in de wallet
+@app.route('/balance', methods=['GET'])
+def get_balance():
+    balance = blockchain.get_balance()
+    if balance != None:
+        response = {
+            'message': 'Fetched balance successfully.',
+            'funds': balance                                # Naast de confirmation message, natuurlijk ook de daadwerkelijke funds meesturen in de response
+        }
+        return jsonify(response), 200                        # Convert de response (een dictionary) naar JSON-data en geef ook een HTTP statuscode van 200 ('OK')
+    else:
+        response = {
+            'message': 'Loading balance failed.',
+            'wallet_set_up': wallet.public_key != None      # Geef als extra info in de response mee of de public_key wel/niet None is (mbv een boolean)
+        }
+        return jsonify(response), 500                       # Convert de response (een dictionary) naar JSON-data en geef ook een HTTP statuscode van 500 ('Internal Server Error')
+
 
 
 # In Flask maak je endpoints aan mbv de "route" decorator die je toevoegt aan een function. Hiermee registreer je een nieuwe route binnen je Flask app.
@@ -70,9 +91,10 @@ def mine():
         dict_block = block.__dict__.copy()                                              # maak dan een kopie van de block en convert die naar een dictionary, 
         dict_block['transactions'] = [tx.__dict__ for tx in dict_block['transactions']] # en ook mbv een list comprehension alle transaction in het block converten naar dictionaries.
         
-        response = {                                    # maak een response aan in de vorm van een dictionary, die o.a. bestaat uit het block dat is toegevoegd aan de blockchain
+        response = {                                    # maak een response aan in de vorm van een dictionary, die o.a. bestaat uit het block dat is toegevoegd aan de blockchain en de funds (hoeveel crypto er nog in de wallet zit)
             'message': 'Block added successfully',
-            'block': dict_block
+            'block': dict_block,
+            'funds': blockchain.get_balance()
         }
         return jsonify(response), 201                   # De response van de server op de request van de client/webapp als het minnen succeed, is dus een response-dictionary (geconvert naar JSON) met daarin het block dat is toegevoegd aan de blockchain, en een HTTP statuscode van 201 ('Created', The request has been fulfilled, resulting in the creation of a new resource.)
     else:                                               # Op het moment dat de mine_block() None returned en dus is gefailed (omdat bijv. de hosting_node/public_key van de blockchain None is),

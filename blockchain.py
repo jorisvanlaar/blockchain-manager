@@ -110,6 +110,10 @@ class Blockchain:
 
     def get_balance(self):
         """ Subtracts the total amount a participant has sent from the total amount he has received and returns this balance """
+        
+        if self.hosting_node == None:   # Check whether the public_key is None,
+            return None                 # en als dat het geval is return None. Is dat niet het geval wordt er automatisch doorgegaan met de code hieronder.
+        
         participant = self.hosting_node
 
         # Fetch a list of all sent amounts for the given person (empty lists are returned if the person was NOT the sender)
