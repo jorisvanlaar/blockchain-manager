@@ -1,7 +1,8 @@
 # Flask importeren, zodat je een Flask applicatie kunt opzetten die dienstdoet als (web) server die kan luisteren naar inkomende HTTP requests van een client/webapp. 
 # jsonify importeren, zodat je data kunt converten naar JSON en die JSON data vervolgens als response op de request terugsturen
 # request importeren, zodat deze node server data kan extracten van een binnenkomende request. In dit geval willen we dat kunnen, zodat wanneer er een transaction wordt aangemaakt in de '/transaction' route, we de recipient en amount kunnen extracten uit de binnenkomende request
-from flask import Flask, jsonify, request     
+# send_from_directory importeren, zodat je node.html kunt terugsturen als response voor de GET request voor 'localhost:5000/'
+from flask import Flask, jsonify, request, send_from_directory 
 from flask_cors import CORS # CORS importeren zodat je de setup van de Flask app zodanig kan aanpassen dat je wel in de toekomst connecties van andere nodes met deze server kunt toestaan (dat mag standaard namelijk niet)
 from wallet import Wallet
 from blockchain import Blockchain
@@ -10,6 +11,34 @@ app = Flask(__name__)                       # Aanmaken van de Flask app/server e
 wallet = Wallet()                           # Direct bij het starten van de app een Wallet initialiseren, die per default nog geen keys heeft natuurlijk (zie constructor in de Wallet class)
 blockchain = Blockchain(wallet.public_key)  # Initialiseren van de blockchain. Diens public_key zal in eerste instantie None zijn, maar dat maakt niet uit, want die heb ik toch niet nodig voor het returnen van de blockchain in het '/chain' endpoint
 CORS(app)                                   # De Flask app/server wrappen in het CORS mechanisme, zodat de app nu ook potentieel connecties van andere clients/nodes accepteert
+
+
+# In Flask maak je endpoints aan mbv de "route" decorator die je toevoegt aan een function. Hiermee registreer je een nieuwe route binnen je Flask app.
+# Deze decorator heeft 2 arguments nodig voor dit endpoint: 
+# 1. De path (een url bestaat uit domain/path, oftewel: jorisvanlaar.nl/about.js bijv. jorisvanlaar.nl is de domain, about.js is de path)
+# 2. Het type request
+# Door alleen een '/' als path in te geven wordt dit endpoint bereikt (en dus get_ui() gecalled) als je navigeert naar localhost:5000/ in de browser. Eigenlijk is de path dus leeg.
+# methods=['GET'] -> Alleen maar GET requests toestaan die naar dit endpoint kunnen worden verstuurd
+# Op het moment dat de client een GET request verstuurd naar de path localhost:5000/ (oftewel 0.0.0.0:5000/) dan wordt de get_ui() functie gecalled die een response returned in de vorm van de node.html file
+# Als je dus node.py runned, zodat de server openstaat, en vervolgens naar de browser gaat en als adres 'localhost:5000/' ingeeft, zul je de node.html webpagina (oftewel de View) zien.
+@app.route('/', methods=['GET'])
+def get_ui():
+    return send_from_directory('ui', 'node.html')
+
+
+@app.route('/js/controller.js', methods=['GET'])
+def get_controller():
+    return send_from_directory('js', 'controller.js')
+
+
+@app.route('/img/joris_coin.png', methods=['GET'])
+def get_logo():
+    return send_from_directory('img', 'joris_coin.png')
+
+
+@app.route('/img/favicon.ico', methods=['GET'])
+def get_favicon():
+    return send_from_directory('img', 'favicon.ico')
 
 
 # De wallet is wel aangemaakt, maar diens keys zijn per default nog None, dat moet gefixed worden met deze function.
@@ -69,20 +98,6 @@ def get_balance():
             'wallet_set_up': wallet.public_key != None      # Geef als extra info in de response mee of de public_key wel/niet None is (mbv een boolean)
         }
         return jsonify(response), 500                       # Convert de response (een dictionary) naar JSON-data en geef ook een HTTP statuscode van 500 ('Internal Server Error')
-
-
-
-# In Flask maak je endpoints aan mbv de "route" decorator die je toevoegt aan een function. Hiermee registreer je een nieuwe route binnen je Flask app.
-# Deze decorator heeft 2 arguments nodig voor dit endpoint: 
-# 1. De path (een url bestaat uit domain/path, oftewel: jorisvanlaar.nl/about.js bijv. jorisvanlaar.nl is de domain, about.js is de path)
-# 2. Het type request
-# Door alleen een '/' als path in te geven wordt dit endpoint bereikt (en dus get_ui() gecalled) als je navigeert naar localhost:5000/ in de browser. Eigenlijk is de path dus leeg.
-# methods=['GET'] -> Alleen maar GET requests toestaan die naar dit endpoint kunnen worden verstuurd
-# Op het moment dat de client een GET request verstuurd naar de path localhost:5000/ (oftewel 0.0.0.0:5000/) dan wordt de get_ui() functie gecalled die een response returned in de vorm van een string
-# Als je dus node.py runned, zodat de server openstaat, en vervolgens naar de browser gaat en als adres 'localhost:5000/' ingeeft, zul je de string 'This works' zien.
-@app.route('/', methods=['GET'])
-def get_ui():
-    return 'This works'
 
 
 # Een route voor het toevoegen van een nieuwe transaction (aan de open_transactions list, die dan na het minen wordt samengevoegd in een block die aan de blockchain wordt toegevoegd)

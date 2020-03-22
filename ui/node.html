@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>JorisCoin Manager</title>
+    <link rel="shortcut icon" href="/img/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+    
+    <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4"
+        crossorigin="anonymous"> -->
+    <!--Bootstrap CSS Framework importeren zodat je een kant-en-klare CSS template hebt die je kunt customizen waar gewenst -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+    <style>
+        .logo {
+            width: 128px;
+            height: 128px;
+            margin: 10px
+        }
+
+        /* Ervoor zorgen dat in de success alert de te lange keys worden afgebroken naar volgende regels */
+        .alert-success {                
+            word-wrap: break-word;
+        }
+        
+        /* lds is de Bootstrap naam voor de loader-ring / loader/ spinner */
+        .lds-ring {
+            display: inline-block;
+            position: relative;
+            width: 64px;
+            height: 64px;
+        }
+
+        .lds-ring div {
+            box-sizing: border-box;
+            display: block;
+            position: absolute;
+            width: 51px;
+            height: 51px;
+            margin: 6px;
+            border: 6px solid #fa923f;
+            border-radius: 50%;
+            animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            border-color: #fa923f transparent transparent transparent;
+        }
+
+        .lds-ring div:nth-child(1) {
+            animation-delay: -0.45s;
+        }
+
+        .lds-ring div:nth-child(2) {
+            animation-delay: -0.3s;
+        }
+
+        .lds-ring div:nth-child(3) {
+            animation-delay: -0.15s;
+        }
+
+        @keyframes lds-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="row mb-3">
+                <div class="col">
+                    <img src="../img/joris_coin.png" class="logo">
+                    <h1>JorisCoin Manager</h1>
+                    
+                </div>
+            </div>
+            <div v-if="error" class="alert alert-danger" role="alert">
+                {{ error }}     <!-- dmv js dynamisch hier een error message inladen-->
+            </div>
+            <div v-if="success" class="alert alert-success" role="alert">
+                <div>{{ success }}</div>   <!-- dmv js dynamisch hier een success message inladen-->
+                <div>{{ publicKey }}</div>
+                <div>{{ privateKey }}</div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div v-if="!walletLoading">
+                        <button class="btn btn-primary" @click="onCreateWallet">
+                            Create new Wallet
+                        </button>
+                        <button class="btn btn-primary" @click="onLoadWallet">
+                            Load Wallet
+                        </button>
+                    </div>
+
+                    <div v-if="walletLoading" class="lds-ring">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                </div>
+                <div class="col text-right">
+                    <h2>Funds: {{ funds }}</h2>     <!-- dmv js dynamisch hier de funds inladen-->
+                </div>
+            </div>
+            <hr>
+            <div v-if="!wallet" class="row">
+                <div class="col">
+                    <div class="alert alert-warning">Create a Wallet to start sending or mine JorisCoins!</div>
+                </div>
+            </div>
+            <div v-if="wallet" class="row">
+                <div class="col">
+                    <form @submit.prevent="onSendTx">
+                        <div class="form-group">
+                            <label for="recipient">Recipient Key</label>
+                            <input v-model="outgoingTx.recipient" type="text" class="form-control" id="recipient" placeholder="Enter key">
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Amount of JorisCoins</label>
+                            <input v-model.number="outgoingTx.amount" type="number" step="0.001" class="form-control" id="amount">
+                            <small class="form-text text-muted">Fractions are possible (e.g. 5.67)</small>
+                        </div>
+                        <div v-if="txLoading" class="lds-ring">
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                        </div>
+                        <button :disabled="txLoading || outgoingTx.recipient.trim() === '' || outgoingTx.amount <= 0" type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col">
+                    <ul class="nav nav-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{active: view === 'chain'}" href="#" @click="view = 'chain'">Blockchain</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{active: view === 'tx'}" href="#" @click="view = 'tx'">Open Transactions</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row my-3">
+                <div class="col">
+                    <button class="btn btn-primary" @click="onLoadData">{{ view === 'chain' ? 'Load Blockchain' : 'Load Transactions' }}</button>
+                    <button v-if="view === 'chain' && wallet" class="btn btn-success" @click="onMine">Mine JorisCoins</button>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div v-if="dataLoading" class="lds-ring">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    <div v-if="!dataLoading" class="accordion">
+                        <div class="card" v-for="(data, index) in loadedData">
+                            <div v-if="view === 'chain'" class="card-header">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link" type="button" @click="showElement === index ? showElement = null : showElement = index">
+                                        Block #{{ data.index }}     <!-- dmv js dynamisch hier de index nummers van de blocks in de blockchain inladen-->
+                                    </button>
+                                </h5>
+                            </div>
+                            <div v-if="view === 'chain'" class="collapse" :class="{show: showElement === index}">
+                                <div class="card-body">
+                                    <p>Previous Hash: {{ data.previous_hash }}</p>
+                                    <div class="list-group">
+                                        <div v-for="tx in data.transactions" class="list-group-item flex-column align-items-start">
+                                            <div>Sender: {{ tx.sender }}</div>          <!-- dmv js dynamisch hier de sender (in deze app ben je dat zelf alleen (dus jouw public_key), omdat je niks ontvangt van anderen) van de transaction van een block in de chain inladen-->
+                                            <div>Recipient: {{ tx.recipient }}</div>    <!-- dmv js dynamisch hier de recipient van de transaction van een block in de chain inladen-->  
+                                            <div>Amount: {{ tx.amount }}</div>          <!-- dmv js dynamisch hier het amount van de transaction van een block in de chain inladen-->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="view === 'tx'" class="card-header">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link" type="button" @click="showElement === index ? showElement = null : showElement = index">
+                                        Transaction #{{ index }}
+                                    </button>
+                                </h5>
+                            </div>
+                            <div v-if="view === 'tx'" class="collapse" :class="{show: showElement === index}">
+                                <div class="card-body">
+                                    <div class="list-group">
+                                        <div class="list-group-item flex-column align-items-start">
+                                            <div>Sender: {{ data.sender }}</div>                        <!-- dmv js dynamisch hier de sender van de transaction in de open transactions inladen-->
+                                            <div>Recipient: {{ data.recipient }}</div>                  <!-- dmv js dynamisch hier de recipient van de transaction in de open transactions inladen-->              
+                                            <div>Amount: {{ data.amount }}</div>                        <!-- dmv js dynamisch hier het amount van de transaction in de open transactions inladen-->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Importing the Vue.js framework which can dynamically update the content of the html page, through a Vue instance -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+    <!-- Importing the axios library that helps to make HTTP requests behind the scenes in order to connect to the server (node.py)-->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- A Vue instance that acts as a controller to dynamically update the content of the html page, if separate controller file, you'll probably need to import Vue and Axios there as well-->
+    <script type = "text/javascript" src = "/js/controller.js"></script>
+</body>
+
+</html>
