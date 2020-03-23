@@ -3,14 +3,14 @@
 # request importeren, zodat deze node server data kan extracten van een binnenkomende request. In dit geval willen we dat kunnen, zodat wanneer er een transaction wordt aangemaakt in de '/transaction' route, we de recipient en amount kunnen extracten uit de binnenkomende request
 # send_from_directory importeren, zodat je node.html kunt terugsturen als response voor de GET request voor 'localhost:5000/'
 from flask import Flask, jsonify, request, send_from_directory 
-from flask_cors import CORS # CORS importeren zodat je de setup van de Flask app zodanig kan aanpassen dat je wel in de toekomst connecties van andere nodes met deze server kunt toestaan (dat mag standaard namelijk niet)
+# from flask_cors import CORS # CORS importeren zodat je de setup van de Flask app zodanig kan aanpassen dat je wel in de toekomst connecties van andere nodes met deze server kunt toestaan (dat mag standaard namelijk niet)
 from wallet import Wallet
 from blockchain import Blockchain
 
 app = Flask(__name__)                       # Aanmaken van de Flask app/server en hangen aan de variabelen 'app'. Bij het aanmaken moet je als argument de naam van de app meegeven, in dit geval __name__ Dit vertelt Flask in welke context de node runnend. 
 wallet = Wallet()                           # Direct bij het starten van de app een Wallet initialiseren, die per default nog geen keys heeft natuurlijk (zie constructor in de Wallet class)
 blockchain = Blockchain(wallet.public_key)  # Initialiseren van de blockchain. Diens public_key zal in eerste instantie None zijn, maar dat maakt niet uit, want die heb ik toch niet nodig voor het returnen van de blockchain in het '/chain' endpoint
-CORS(app)                                   # De Flask app/server wrappen in het CORS mechanisme, zodat de app nu ook potentieel connecties van andere clients/nodes accepteert
+# CORS(app)                                   # De Flask app/server wrappen in het CORS mechanisme, zodat de app nu ook potentieel connecties van andere clients/nodes accepteert
 
 
 # In Flask maak je endpoints aan mbv de "route" decorator die je toevoegt aan een function. Hiermee registreer je een nieuwe route binnen je Flask app.
@@ -24,11 +24,6 @@ CORS(app)                                   # De Flask app/server wrappen in het
 @app.route('/', methods=['GET'])
 def get_ui():
     return send_from_directory('ui', 'node.html')
-
-
-@app.route('/js/controller.js', methods=['GET'])
-def get_controller():
-    return send_from_directory('js', 'controller.js')
 
 
 @app.route('/img/joris_coin.png', methods=['GET'])
