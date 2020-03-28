@@ -1,5 +1,5 @@
-from Crypto.PublicKey import RSA    # de pycryptodom package importeren (die gek genoeg Crypto heet bij het importeren), en daarvan specifiek het RSA algoritme importeren voor het genereren van public/private keys 
-import Crypto.Random                # Random van de pycrypto/Crypto package importeren, zodat je een random nummer kunt genereren
+from Crypto.PublicKey import RSA    # de pycryptodome package importeren (die gek genoeg Crypto heet bij het importeren), en daarvan specifiek het RSA algoritme importeren voor het genereren van public/private keys 
+import Crypto.Random                # Random van de pycryptodome/Crypto package importeren, zodat je een random nummer kunt genereren
 import binascii                     # impporteren zodat je de public/private keys kunt converten van binary data  naar ascii data (string in dit geval)
 #from Crypto.Signature import PKCS1_v1_5 
 from Crypto.Signature import pkcs1_15   # importeren van het PKCS1_v1_5 algortime voor het voor het genereren van een signature in 'signature_transaction()' 
