@@ -350,8 +350,15 @@
                         axios.get('/chain')                         // Sturen van een GET request naar de server (node.py) mbv axios naar de route '/chain' (oftewel 'localhost:5000/chain')
                         .then(function(response){                   // Deze GET request wordt asynchroon afgehandeld, de request zou dus eventjes kunnen duren potentieel. 
                             // console.log(response.data)           // In het geval van Axios wordt hiervoor een 'promise' gebruikt. Wat zoveel betekent als dat pas op het moment dat de response vd server is ontvangen, je afspreekt ('promise') dat je dan specifieke code pas op dat moment laat runnen dmv callen van de .then() method.
-                            vm.blockchain = response.data           // In dit geval wil je alleen de teruggestuurde data van de response (want die bestaat uit meer dingen, o.a. headers en HTTP statuscodes) opslaan in de controller/de Vue.js instance, en dan specifiek in diens blockchain field -> 'vm.blockchain'
-                            vm.dataLoading = false                  // vm.dataloading weer op false setten zodat de spinner/loading visual weer verdwijnt
+                            if (response.data.message == 'invalid'){    // Als de blockchain invalid blijkt te zijn (vanwege foute hashes en/of PoW nr's),
+                                vm.blockchain = []
+                                vm.success = null
+                                vm.error = 'Invalid Blockchain!'        // dan een error message tonen.
+                                vm.dataLoading = false
+                            } else{
+                                vm.blockchain = response.data           // In dit geval wil je alleen de teruggestuurde data van de response (want die bestaat uit meer dingen, o.a. headers en HTTP statuscodes) opslaan in de controller/de Vue.js instance, en dan specifiek in diens blockchain field -> 'vm.blockchain'
+                                vm.dataLoading = false                  // vm.dataloading weer op false setten zodat de spinner/loading visual weer verdwijnt
+                            }
                         })
                         .catch(function(error){                      // Afhandelen van eventuele errors tijdens het laden van de blockchain mbv een catch block
                             vm.dataLoading = false                   // Loading spinner uitzetten

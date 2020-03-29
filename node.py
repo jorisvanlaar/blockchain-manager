@@ -182,9 +182,9 @@ def get_chain():
     chain = blockchain.chain
 
     # De correctheid van de blockchain verfieren door de hashes en de PoW nummers te checken
-    if not Verification.verify_chain(chain):
+    if not Verification.verify_chain(chain):    # if verify_chain() returns False
         response = {
-            'message': 'Invalid blockchain!'
+            'message': 'invalid'
         }
         return jsonify(response), 500
     else:
