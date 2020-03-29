@@ -6,6 +6,7 @@ from flask import Flask, jsonify, request, send_from_directory
 # from flask_cors import CORS # CORS importeren zodat je de setup van de Flask app zodanig kan aanpassen dat je wel in de toekomst connecties van andere nodes met deze server kunt toestaan (dat mag standaard namelijk niet)
 from wallet import Wallet
 from blockchain import Blockchain
+from helpers.verification import Verification
 
 app = Flask(__name__)                       # Aanmaken van de Flask app/server en hangen aan de variabelen 'app'. Bij het aanmaken moet je als argument de naam van de app meegeven, in dit geval __name__ Dit vertelt Flask in welke context de node runnend. 
 wallet = Wallet()                           # Direct bij het starten van de app een Wallet initialiseren, die per default nog geen keys heeft natuurlijk (zie constructor in de Wallet class)
@@ -179,21 +180,29 @@ def get_open_transactions():
 @app.route('/chain', methods=['GET'])
 def get_chain():
     chain = blockchain.chain
-    # De chain is opgebouwd uit Blocks. Een object (in dit geval een Block) is nooit te converten naar json data,
-    # daarom eerst het Block object converten naar een dictionary, want die is wel als json op te slaan.
-    dict_chain = [block.__dict__.copy() for block in chain] # Mbv list comprehension door elk block van de chain gaan en die converten naar een dictionary, want die kun je wel met jsonify() converten naar JSON data.
-                                                            # Is hierbij van belang dat je van elk block een copy maakt voordat je hem convert naar een dictionary, om ongewenste bijkomendheden te voorkomen wanneer je een block manipuleert. Die manipulatie doe je dan liever niet op het origineel.
-    
-    # block.__dict__ convert wel de blocks in de chain naar dictionaries, 
-    # maar die convert niet OOK de transactions (oftewel een list aan Transactions) binnen dit object (de block) naar dictionaries.
-    # Dus met een for-loop door elk reeds geconverte block van de chain gaan, en de transactions in elk block ook converten naar een dictionary.
-    for dict_block in dict_chain:
-        dict_block['transactions'] = [tx.__dict__ for tx in dict_block['transactions']] # mbv list comprehension de transactions in elk block converten naar dictionaries
 
-    # return (dus eigenlijk de response van de server) in Flask vereist een tuple die bestaat uit:
-    # 1. De data van de response (in dit geval dus de chain in de vorm van JSON data)
-    # 2. De HTTP status code (in dit geval 200, wat staat voor 'OK' -> Standard response for successful HTTP requests)
-    return jsonify(dict_chain), 200       # jsonify(chain) -> converten van de chain naar JSON-data, returnen van de 200 HTTP statuscode (OK)
+    # De correctheid van de blockchain verfieren door de hashes en de PoW nummers te checken
+    if not Verification.verify_chain(chain):
+        response = {
+            'message': 'Invalid blockchain!'
+        }
+        return jsonify(response), 500
+    else:
+        # De chain is opgebouwd uit Blocks. Een object (in dit geval een Block) is nooit te converten naar json data,
+        # daarom eerst het Block object converten naar een dictionary, want die is wel als json op te slaan.
+        dict_chain = [block.__dict__.copy() for block in chain] # Mbv list comprehension door elk block van de chain gaan en die converten naar een dictionary, want die kun je wel met jsonify() converten naar JSON data.
+                                                                # Is hierbij van belang dat je van elk block een copy maakt voordat je hem convert naar een dictionary, om ongewenste bijkomendheden te voorkomen wanneer je een block manipuleert. Die manipulatie doe je dan liever niet op het origineel.
+        
+        # block.__dict__ convert wel de blocks in de chain naar dictionaries, 
+        # maar die convert niet OOK de transactions (oftewel een list aan Transactions) binnen dit object (de block) naar dictionaries.
+        # Dus met een for-loop door elk reeds geconverte block van de chain gaan, en de transactions in elk block ook converten naar een dictionary.
+        for dict_block in dict_chain:
+            dict_block['transactions'] = [tx.__dict__ for tx in dict_block['transactions']] # mbv list comprehension de transactions in elk block converten naar dictionaries
+
+        # return (dus eigenlijk de response van de server) in Flask vereist een tuple die bestaat uit:
+        # 1. De data van de response (in dit geval dus de chain in de vorm van JSON data)
+        # 2. De HTTP status code (in dit geval 200, wat staat voor 'OK' -> Standard response for successful HTTP requests)
+        return jsonify(dict_chain), 200       # jsonify(chain) -> converten van de chain naar JSON-data, returnen van de 200 HTTP statuscode (OK)
 
 
 if __name__ == '__main__':                  # Checken of de context is dat je node.py direct runned (en dus niet importeert)
