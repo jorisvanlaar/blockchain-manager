@@ -8,8 +8,6 @@
     <title>JorisCoin Manager</title>
     <link rel="shortcut icon" href="/img/favicon.ico" type="image/x-icon">
     <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
-    
-    <!--Bootstrap CSS Framework importeren zodat je een kant-en-klare CSS template hebt die je kunt customizen waar gewenst -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
 
     <style>
@@ -19,12 +17,10 @@
             margin: 10px
         }
 
-        /* Ervoor zorgen dat in de success alert de te lange keys worden afgebroken naar volgende regels */
         .alert-success {                
             word-wrap: break-word;
         }
         
-        /* lds is de Bootstrap naam voor de loader-ring / loader/ spinner */
         .lds-ring {
             display: inline-block;
             position: relative;
@@ -79,10 +75,10 @@
                 </div>
             </div>
             <div v-if="error" class="alert alert-danger" role="alert">
-                {{ error }}     <!-- dmv js dynamisch hier een error message inladen-->
+                {{ error }}     
             </div>
             <div v-if="success" class="alert alert-success" role="alert">
-                <div>{{ success }}</div>   <!-- dmv js dynamisch hier een success message inladen-->
+                <div>{{ success }}</div>   
                 <div>{{ publicKey }}</div>
                 <div>{{ privateKey }}</div>
             </div>
@@ -90,7 +86,7 @@
                 <div class="col">
                     <div v-if="!walletLoading">
                         <button class="btn btn-primary" @click="onCreateWallet">
-                            Create new Wallet
+                            Create New Wallet
                         </button>
                         <button class="btn btn-primary" @click="onLoadWallet">
                             Load Wallet
@@ -105,7 +101,7 @@
                     </div>
                 </div>
                 <div class="col text-right">
-                    <h2>Funds: {{ funds.toFixed(2) }}</h2>     <!-- dmv js dynamisch hier de funds inladen, waarbij je tot twee decimalen beperkt-->
+                    <h2>Funds: {{ funds.toFixed(2) }}</h2>     
                 </div>
             </div>
             <hr>
@@ -168,7 +164,7 @@
                             <div v-if="view === 'chain'" class="card-header">
                                 <h5 class="mb-0">
                                     <button class="btn btn-link" type="button" @click="showElement === index ? showElement = null : showElement = index">
-                                        Block #{{ data.index }}     <!-- dmv js dynamisch hier de index nummers van de blocks in de blockchain inladen-->
+                                        Block #{{ data.index }}     
                                     </button>
                                 </h5>
                             </div>
@@ -177,9 +173,9 @@
                                     <p>Previous Hash: {{ data.previous_hash }}</p>
                                     <div class="list-group">
                                         <div v-for="tx in data.transactions" class="list-group-item flex-column align-items-start">
-                                            <div>Sender: {{ tx.sender }}</div>          <!-- dmv js dynamisch hier de sender (in deze app ben je dat zelf alleen (dus jouw public_key), omdat je niks ontvangt van anderen) van de transaction van een block in de chain inladen-->
-                                            <div>Recipient: {{ tx.recipient }}</div>    <!-- dmv js dynamisch hier de recipient van de transaction van een block in de chain inladen-->  
-                                            <div>Amount: {{ tx.amount }}</div>          <!-- dmv js dynamisch hier het amount van de transaction van een block in de chain inladen-->
+                                            <div>Sender: {{ tx.sender }}</div>          
+                                            <div>Recipient: {{ tx.recipient }}</div>     
+                                            <div>Amount: {{ tx.amount }}</div>          
                                         </div>
                                     </div>
                                 </div>
@@ -196,9 +192,9 @@
                                 <div class="card-body">
                                     <div class="list-group">
                                         <div class="list-group-item flex-column align-items-start">
-                                            <div>Sender: {{ data.sender }}</div>                        <!-- dmv js dynamisch hier de sender van de transaction in de open transactions inladen-->
-                                            <div>Recipient: {{ data.recipient }}</div>                  <!-- dmv js dynamisch hier de recipient van de transaction in de open transactions inladen-->              
-                                            <div>Amount: {{ data.amount }}</div>                        <!-- dmv js dynamisch hier het amount van de transaction in de open transactions inladen-->
+                                            <div>Sender: {{ data.sender }}</div>                        
+                                            <div>Recipient: {{ data.recipient }}</div>                               
+                                            <div>Amount: {{ data.amount }}</div>                        
                                         </div>
                                     </div>
                                 </div>
@@ -210,11 +206,9 @@
         </div>
     </div>
 
-    <!-- Importing the Vue.js framework which can dynamically update the content of the html page, through a Vue instance -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
-    <!-- Importing the axios library that helps to make HTTP requests behind the scenes in order to connect to the server (node.py)-->
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <!-- A Vue instance that acts as a controller to dynamically update the content of the html page, if separate controller file, you'll probably need to import Vue and Axios there as well-->
+    
     <script>
         new Vue({
             el: '#app',
@@ -248,15 +242,13 @@
             },
             methods: {
                 onCreateWallet: function () {
-                    // Stuur een HTTP (POST) request om een nieuwe wallet te createn (en diens keys te returnen)
-                    var vm = this                   // Toegang verkrijgen tot de controller/Vue instance (of eigenlijk diens methods vooral dus)
-                    vm.walletLoading = true         // Triggered de loader/spinner op de locatie van de wallet
-                    axios.post('/wallet')           // Sturen van een POST request naar de server (node.py) mbv axios naar de route '/wallet' (oftewel 'localhost:5000/wallet')
+                    var vm = this                   
+                    vm.walletLoading = true         
+                    axios.post('/wallet')           
                     .then(function(response){
-                        // console.log(response)
-                        vm.error = null             // 'error' field van de vm/Vue instance op null setten, want we hebben hier geen error
+                        vm.error = null             
                         vm.walletLoading = false
-                        vm.wallet = {               // activeren van de 'wallet' field zodat minen en versturen van transacties beschikbaar komt
+                        vm.wallet = {               
                             public_key: response.data.public_key,
                             private_key: response.data.private_key
                         }
@@ -268,14 +260,13 @@
                     .catch(function(error){
                         vm.walletLoading = false
                         vm.wallet = null
-                        vm.success = null                             // success field op null setten, want we hebben geen succes message
+                        vm.success = null                             
                         vm.publicKey = null
                         vm.privateKey = null
-                        vm.error = error.response.data.message                 // De error-message gebruiken die je krijgt meegestuurd van de response van de server van de /wallet route, in dit geval: 'Saving the keys failed.' 
+                        vm.error = error.response.data.message                  
                     })
                 },
                 onLoadWallet: function () {
-                    // Stuur een HTTP (GET) request om een bestaande wallet in te laden (van een file op de server)
                     var vm = this
                     vm.walletLoading = true
                     axios.get('/wallet')
@@ -301,10 +292,6 @@
                     })
                 },
                 onSendTx: function () {
-                    // Stuur de transaction naar de backend/model
-                    // Voor de nieuw toe te voegen transaction is het vereist dat we ook de vereiste 'recipient' en 'amount' data meesturen met de HTTP request (zie ook de /transaction route in node.py)
-                    // Deze extra data kunnen we toevoegen aan de HTTP request door een tweede argument mee tegeven bij het versturen van een HTTP request met Axios.
-                    // In dit geval is dat tweede argument een JavaScript object bestaande uit recipient en amount data.
                     var vm = this
                     vm.publicKey = null
                     vm.privateKey = null
@@ -314,7 +301,6 @@
                         amount: vm.outgoingTx.amount
                     })
                     .then(function(response){
-                        // console.log(response.data)
                         vm.error = null
                         vm.success = response.data.message
                         vm.funds = response.data.funds
@@ -332,7 +318,6 @@
                     vm.privateKey = null
                     axios.post('/mine')
                     .then(function(response){
-                        // console.log(response.data)
                         vm.error = null
                         vm.success = response.data.message
                         vm.funds = response.data.funds
@@ -343,30 +328,26 @@
                     })
                 },
                 onLoadData: function () {
-                    if (this.view === 'chain') {                    // Check of er naar de blockchain of openTransactions view(tab) wordt gekeken
-                        // Load Blockchain data
-                        var vm = this                               // Koppelen van de controller/Vue.js instance aan de variabele 'vm' (misschien gewoon controller noemen?)
-                        vm.dataLoading = true                       // het dataloading field van de Vue instance op true setting, zodat de loader visual wordt getoond, die weer verdwijnt als dataLoading = false is.
-                        axios.get('/chain')                         // Sturen van een GET request naar de server (node.py) mbv axios naar de route '/chain' (oftewel 'localhost:5000/chain')
-                        .then(function(response){                   // Deze GET request wordt asynchroon afgehandeld, de request zou dus eventjes kunnen duren potentieel. 
-                            // console.log(response.data)           // In het geval van Axios wordt hiervoor een 'promise' gebruikt. Wat zoveel betekent als dat pas op het moment dat de response vd server is ontvangen, je afspreekt ('promise') dat je dan specifieke code pas op dat moment laat runnen dmv callen van de .then() method.
-                            if (response.data.message == 'invalid'){    // Als de blockchain invalid blijkt te zijn (vanwege foute hashes en/of PoW nr's),
+                    if (this.view === 'chain') {                    
+                        var vm = this                               
+                        vm.dataLoading = true                       
+                        axios.get('/chain')                         
+                        .then(function(response){                              
+                            if (response.data.message == 'invalid'){    
                                 vm.blockchain = []
                                 vm.success = null
-                                vm.error = 'Invalid Blockchain!'        // dan een error message tonen.
+                                vm.error = 'Invalid Blockchain!'        
                                 vm.dataLoading = false
                             } else{
-                                vm.blockchain = response.data           // In dit geval wil je alleen de teruggestuurde data van de response (want die bestaat uit meer dingen, o.a. headers en HTTP statuscodes) opslaan in de controller/de Vue.js instance, en dan specifiek in diens blockchain field -> 'vm.blockchain'
-                                vm.dataLoading = false                  // vm.dataloading weer op false setten zodat de spinner/loading visual weer verdwijnt
+                                vm.blockchain = response.data           
+                                vm.dataLoading = false                  
                             }
                         })
-                        .catch(function(error){                      // Afhandelen van eventuele errors tijdens het laden van de blockchain mbv een catch block
-                            vm.dataLoading = false                   // Loading spinner uitzetten
-                            vm.error = 'Loading Blockchain failed.'  // Het 'error' field van de Vue instance staat initieel op null, maar op het moment dat een error wordt gecatched wordt deze string ingeladen in de html pagina
-                        })
-                        
+                        .catch(function(error){                      
+                            vm.dataLoading = false                   
+                            vm.error = 'Loading Blockchain failed.'  
+                        })     
                     } else {
-                        // Load Open Transactions data
                         var vm = this
                         vm.dataLoading = true
                         axios.get('/transactions')
@@ -374,9 +355,9 @@
                             vm.openTransactions = response.data
                             vm.dataLoading = false
                         })
-                        .catch(function(error){                                     // Afhandelen van eventuele errors tijdens het laden van de Open Transactions mbv een catch block
-                            vm.dataLoading = false                           // Loading spinner uitzetten
-                            vm.error = 'Loading Open Transactions failed.'   // Het 'error' field van de Vue instance staat initieel op null, maar op het moment dat een error wordt gecatched wordt deze string ingeladen in de html pagina
+                        .catch(function(error){                                     
+                            vm.dataLoading = false                           
+                            vm.error = 'Loading Open Transactions failed.'   
                         }) 
                     }
                 }
