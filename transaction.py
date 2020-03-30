@@ -1,23 +1,20 @@
-from collections import OrderedDict # geimporteerd om ervoor te zorgen dat al je transaction dictionaries een vaste volgorder/order krijgen
+from collections import OrderedDict 
 
 class Transaction:
-    def __init__(self, sender, recipient, amount):
+    def __init__(self, sender, recipient, signature, amount):
         self.sender = sender
         self.recipient = recipient
         self.amount = amount
+        self.signature = signature
     
 
     def __repr__(self):
-        return f"Sender: {self.sender}, Recipient: {self.recipient}, Amount: {self.amount}"
+        return f"Sender: {self.sender}, Recipient: {self.recipient}, Amount: {self.amount}, Signature: {self.signature}"
     
     
-    # Je bouwt een Transaction op met een OrderedDict om ervoor te zorgen dat de order van je transactions altijd vaststaat. 
-    # Dit is nodig zodat je dan altijd dezelfde correcte hash genereert voor eenzelfde block in de valid_proof() method
-    # Een OrderedDict is opgebouwd uit een list aan tuples, waarbij elke tuple een key-value pair is.
-    # Door deze functie hier in te bouwen kun je wanneer je wilt makkelijk een Transaction object converten naar een OrderedDict, om zo dus de order te waarborgen.
     def to_ordered_dict(self):
         """ Returns an OrderedDict object """
-        return OrderedDict([('sender', self.sender), ('recipient', self.recipient), ('amount', self.amount)])
+        return OrderedDict([('sender', self.sender), ('recipient', self.recipient), ('signature', self.signature), ('amount', self.amount)])
     
 
     
