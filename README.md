@@ -15,7 +15,7 @@ This app utilizes three third-party Python packages [PyCryptodome](https://pycry
 
 ###### Usage instruction
 1. Start up some nodes with the terminal command `python node.py -p [portnumber]` For example: `python node.py -p 5000`
-2. Start the clients in your browser, using their portnummber: For example: [http://localhost:5000/](http://localhost:5000/)
+2. Start the clients in your browser, using their portnumber: For example: [http://localhost:5000/](http://localhost:5000/)
 3. Create a wallet for each node, or load an existing wallet. A public and private key will be generated.
 4. Create a peer node network. In the 'Network' tab manually add the nodes which you want to be the peer nodes for the current node.
 5. For every block you mine, you will receive a reward of 10 JorisCoins to your funds.
