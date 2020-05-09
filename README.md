@@ -13,7 +13,7 @@ This app utilizes three third-party Python packages [PyCryptodome](https://pycry
 - `python -m pip install Flask`
 - `python -m pip install requests`
 
-###### Usage instruction
+###### Usage instructions
 1. Start up some nodes with the terminal command `python node.py -p [portnumber]` For example: `python node.py -p 5000`
 2. Start the clients in your browser, using their portnumber: For example: [http://localhost:5000/](http://localhost:5000/)
 3. Create a wallet for each node, or load an existing wallet. A public and private key will be generated.
