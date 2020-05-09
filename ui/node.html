@@ -74,6 +74,19 @@
                     
                 </div>
             </div>
+            <div class="row">
+                <div class="col">
+                    <ul class="nav nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/">Wallet &amp; Node</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/network">Network</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
             <div v-if="error" class="alert alert-danger" role="alert">
                 {{ error }}     
             </div>
@@ -149,6 +162,7 @@
                 <div class="col">
                     <button class="btn btn-primary" @click="onLoadData">{{ view === 'chain' ? 'Load Blockchain' : 'Load Transactions' }}</button>
                     <button v-if="view === 'chain' && wallet" class="btn btn-success" @click="onMine">Mine JorisCoins</button>
+                    <button class="btn btn-warning" @click="onResolve">Resolve Conflicts</button>  
                 </div>
             </div>
             <div class="row">
@@ -293,14 +307,14 @@
                 },
                 onSendTx: function () {
                     var vm = this
-                    vm.publicKey = null
-                    vm.privateKey = null
                     vm.txLoading = true
                     axios.post('/transaction', {
                         recipient: vm.outgoingTx.recipient,
                         amount: vm.outgoingTx.amount
                     })
                     .then(function(response){
+                        vm.publicKey = null
+                        vm.privateKey = null
                         vm.error = null
                         vm.success = response.data.message
                         vm.funds = response.data.funds
@@ -314,17 +328,37 @@
                 },
                 onMine: function() {
                     var vm = this
-                    vm.publicKey = null
-                    vm.privateKey = null
+                    vm.txLoading = true
                     axios.post('/mine')
                     .then(function(response){
+                        vm.publicKey = null
+                        vm.privateKey = null
                         vm.error = null
                         vm.success = response.data.message
                         vm.funds = response.data.funds
+                        vm.txLoading = false
                     })
                     .catch(function(error){
                         vm.success = null
                         vm.error = error.response.data.message
+                        vm.txLoading = false
+                    })
+                },
+                onResolve: function(){
+                    var vm = this
+                    vm.txLoading = true
+                    axios.post('/resolve-conflicts')
+                    .then(function(response){
+                        vm.publicKey = null
+                        vm.privateKey = null
+                        vm.error = null
+                        vm.success = response.data.message
+                        vm.txLoading = false
+                    })
+                    .catch(function(error){
+                        vm.success = null
+                        vm.error = error.response.data.message
+                        vm.txLoading = false
                     })
                 },
                 onLoadData: function () {
@@ -332,16 +366,9 @@
                         var vm = this                               
                         vm.dataLoading = true                       
                         axios.get('/chain')                         
-                        .then(function(response){                              
-                            if (response.data.message == 'invalid'){    
-                                vm.blockchain = []
-                                vm.success = null
-                                vm.error = 'Invalid Blockchain!'        
-                                vm.dataLoading = false
-                            } else{
-                                vm.blockchain = response.data           
-                                vm.dataLoading = false                  
-                            }
+                        .then(function(response){
+                            vm.blockchain = response.data
+                            vm.dataLoading = false
                         })
                         .catch(function(error){                      
                             vm.dataLoading = false                   

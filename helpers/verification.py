@@ -12,7 +12,7 @@ class Verification:
 
     @classmethod
     def verify_chain(cls, blockchain):          
-        """ Compares the stored 'previous_hash' in a block with a recalculation of the hash which you do here """
+        """ Verifies the proof of work and compares the stored 'previous_hash' with a recalculated hash that you do here """
         for (index, block) in enumerate(blockchain): 
             if index == 0:                           
                 continue
@@ -28,6 +28,6 @@ class Verification:
     @staticmethod
     def verify_transaction(transaction, get_balance):    
         """ Verifies whether the sender has enough funds and a valid signature for a given transaction """                     
-        sender_balance = get_balance()
+        sender_balance = get_balance(transaction.sender)    
         return sender_balance >= transaction.amount and Wallet.verify_transaction(transaction)
 
